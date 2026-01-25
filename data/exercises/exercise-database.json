@@ -1,0 +1,18 @@
+{
+    "exercises": [
+        {
+            "id": "ankle-pump",
+            "name": "발목 펌프 운동",
+            "type": "rehab",
+            "difficulty": "easy",
+            "description": "누운 상태에서 발목을 위아래로 움직입니다."
+        },
+        {
+            "id": "quad-setting",
+            "name": "대퇴사두근 힘주기",
+            "type": "rehab",
+            "difficulty": "easy",
+            "description": "무릎 뒤를 바닥에 붙이듯이 허벅지에 힘을 줍니다."
+        }
+    ]
+}
