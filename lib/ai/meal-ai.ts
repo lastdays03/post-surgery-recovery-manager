@@ -76,7 +76,9 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
 **음식 질감**: ${guidelines.texture}
 **주의사항**: ${guidelines.notes}
 
-응답은 반드시 다음 JSON 형식을 따라야 합니다:
+**중요**: 응답은 반드시 JSON 배열 형식이어야 합니다. 객체가 아닌 배열로 반환해주세요!
+
+응답 형식 (배열):
 [
   {
     "id": "unique-id",
@@ -108,7 +110,8 @@ ${request.preferences?.avoidIngredients?.length ? `**기피 재료**: ${request.
 ${request.preferences?.availableIngredients?.length ? `**보유 식재료**: ${request.preferences.availableIngredients.join(', ')}` : ''}
 ${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRestrictions.join(', ')}` : ''}
 
-아침, 점심, 저녁, 간식 2개를 포함한 총 5개의 식사를 JSON 배열로 생성해주세요.`
+아침, 점심, 저녁, 간식 2개를 포함한 총 5개의 식사를 JSON 배열로 생성해주세요.
+반드시 배열 형식 [...] 으로 반환해야 합니다!`
 
     try {
         const response = await llm.chat({
@@ -121,37 +124,93 @@ ${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRes
             jsonMode: true
         })
 
-        // JSON 파싱 및 검증
-        const meals = JSON.parse(response.content) as Meal[]
+        // 🔍 디버깅: 실제 응답 로깅
+        console.log('🔍 LLM 응답 원본:', response.content)
+
+        // JSON 파싱 시도
+        let meals: Meal[]
+        try {
+            // 응답이 마크다운 코드 블록으로 감싸져 있을 수 있음
+            let jsonContent = response.content.trim()
+
+            // ```json ... ``` 형식 제거
+            if (jsonContent.startsWith('```')) {
+                const match = jsonContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+                if (match) {
+                    jsonContent = match[1].trim()
+                }
+            }
+
+            const parsed = JSON.parse(jsonContent)
+
+            // 🔥 객체 형식인 경우 배열로 변환
+            if (!Array.isArray(parsed)) {
+                console.warn('⚠️ LLM이 객체 형식으로 반환했습니다. 배열로 변환합니다.')
+                meals = Object.values(parsed) as Meal[]
+            } else {
+                meals = parsed as Meal[]
+            }
+        } catch (parseError) {
+            console.error('❌ JSON 파싱 실패:', parseError)
+            console.error('응답 내용:', response.content)
+            throw new Error(`JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : '알 수 없는 오류'}`)
+        }
 
         // 기본 검증
         if (!Array.isArray(meals) || meals.length === 0) {
+            console.error('❌ 생성된 데이터가 배열이 아니거나 비어있음:', meals)
             throw new Error('생성된 식단이 올바른 형식이 아닙니다.')
         }
 
-        // 각 식사에 고유 ID 부여 (없는 경우)
+        // 각 식사에 고유 ID 및 필수 필드 부여
         meals.forEach((meal, index) => {
             if (!meal.id) {
                 meal.id = `${request.userId}-${Date.now()}-${index}`
+            }
+
+            // 필수 필드 기본값 설정
+            if (!meal.nutrition) {
+                meal.nutrition = { calories: 0, protein: 0, carbs: 0, fat: 0 }
+                console.warn(`⚠️ ${meal.name}: nutrition 필드 누락, 기본값 설정`)
+            }
+            if (!meal.ingredients) {
+                meal.ingredients = []
+                console.warn(`⚠️ ${meal.name}: ingredients 필드 누락, 빈 배열 설정`)
+            }
+            if (!meal.instructions) {
+                meal.instructions = []
+                console.warn(`⚠️ ${meal.name}: instructions 필드 누락, 빈 배열 설정`)
+            }
+            if (!meal.prepTime) {
+                meal.prepTime = 15
+            }
+            if (!meal.portionSize) {
+                meal.portionSize = '1인분'
             }
         })
 
         // 금기 재료 검증
         const forbiddenIngredients = guidelines.forbidden
         meals.forEach(meal => {
-            const hasForbidden = meal.ingredients.some(ingredient =>
+            const hasForbidden = meal.ingredients?.some(ingredient =>
                 forbiddenIngredients.some(forbidden =>
                     ingredient.toLowerCase().includes(forbidden.toLowerCase())
                 )
             )
             if (hasForbidden) {
-                console.warn(`경고: ${meal.name}에 금기 재료가 포함되어 있을 수 있습니다.`)
+                console.warn(`⚠️ 경고: ${meal.name}에 금기 재료가 포함되어 있을 수 있습니다.`)
             }
         })
 
+        console.log(`✅ 식단 생성 성공: ${meals.length}개 식사`)
         return meals
     } catch (error) {
-        console.error('식단 생성 오류:', error)
+        console.error('❌ 식단 생성 오류:', error)
+
+        // 더 자세한 에러 메시지
+        if (error instanceof Error) {
+            throw new Error(`식단 생성 실패: ${error.message}`)
+        }
         throw new Error('식단 생성에 실패했습니다. 다시 시도해주세요.')
     }
 }

@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MealChat } from '@/components/meal-plan/meal-chat'
 import { RefreshCw, MessageSquare, Loader2 } from 'lucide-react'
+import { getTodayMealPlan, saveMealPlan, updateMealPlan, isMealPlanValid } from '@/lib/services/meal-service'
 
 export default function MealPlanPage() {
     const router = useRouter()
@@ -55,7 +56,19 @@ export default function MealPlanPage() {
 
             setRecoveryPhase(mealPhase)
 
-            // Generate meals with LLM
+            // 🔥 캐싱 로직: 로컬 스토리지에서 오늘 식단 조회
+            const cachedPlan = getTodayMealPlan(savedProfile.id)
+
+            if (cachedPlan && isMealPlanValid(cachedPlan, mealPhase)) {
+                // ✅ 캐시 히트: 저장된 식단 사용
+                console.log('✅ 캐시된 식단 사용 (LLM 호출 없음)')
+                setMeals(cachedPlan.meals)
+                setLoading(false)
+                return
+            }
+
+            // ❌ 캐시 미스: LLM 생성
+            console.log('❌ 캐시 미스 - LLM으로 새 식단 생성')
             await generateMeals(savedProfile.id, mealPhase, savedProfile.surgery_type)
         } catch (e) {
             console.error('Error:', e)
@@ -82,6 +95,12 @@ export default function MealPlanPage() {
 
             if (data.success && data.meals) {
                 setMeals(data.meals)
+
+                // 🔥 로컬 스토리지에 저장
+                if (data.mealPlan) {
+                    saveMealPlan(data.mealPlan)
+                    console.log('💾 식단을 로컬 스토리지에 저장했습니다')
+                }
             } else {
                 alert(data.error || '식단 생성에 실패했습니다.')
             }
@@ -101,6 +120,12 @@ export default function MealPlanPage() {
 
     const handleMealsUpdated = (updatedMeals: Meal[]) => {
         setMeals(updatedMeals)
+
+        // 🔥 로컬 스토리지 업데이트
+        if (profile) {
+            updateMealPlan(profile.id, updatedMeals)
+            console.log('💾 수정된 식단을 로컬 스토리지에 저장했습니다')
+        }
     }
 
     if (loading) {
@@ -122,14 +147,18 @@ export default function MealPlanPage() {
     const dinner = meals.find(m => m.mealTime === 'dinner')
     const snacks = meals.filter(m => m.mealTime === 'snack')
 
-    // Calculate daily nutrition
+    // Calculate daily nutrition (안전 처리)
     const dailyNutrition = meals.reduce(
-        (acc, meal) => ({
-            calories: acc.calories + meal.nutrition.calories,
-            protein: acc.protein + meal.nutrition.protein,
-            fat: acc.fat + meal.nutrition.fat,
-            carbs: acc.carbs + meal.nutrition.carbs
-        }),
+        (acc, meal) => {
+            // nutrition 필드가 없는 경우 기본값 사용
+            const nutrition = meal.nutrition || { calories: 0, protein: 0, fat: 0, carbs: 0 }
+            return {
+                calories: acc.calories + (nutrition.calories || 0),
+                protein: acc.protein + (nutrition.protein || 0),
+                fat: acc.fat + (nutrition.fat || 0),
+                carbs: acc.carbs + (nutrition.carbs || 0)
+            }
+        },
         { calories: 0, protein: 0, fat: 0, carbs: 0 }
     )
 

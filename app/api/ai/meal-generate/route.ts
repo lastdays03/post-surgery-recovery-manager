@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDailyMeals, type MealGenerationRequest } from '@/lib/ai/meal-ai'
+import { saveMealPlan } from '@/lib/services/meal-service'
 
 export async function POST(request: NextRequest) {
     try {
@@ -16,9 +17,20 @@ export async function POST(request: NextRequest) {
         // 식단 생성
         const meals = await generateDailyMeals(body)
 
+        // 로컬 스토리지에 저장 (클라이언트에서 처리)
+        // 서버에서는 생성된 식단만 반환
+        const today = new Date().toISOString().split('T')[0]
+
         return NextResponse.json({
             success: true,
             meals,
+            mealPlan: {
+                user_id: body.userId,
+                date: today,
+                recovery_phase: body.recoveryPhase,
+                meals,
+                preferences: body.preferences
+            },
             message: '식단이 성공적으로 생성되었습니다.'
         })
     } catch (error) {
