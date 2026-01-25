@@ -69,6 +69,7 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
 2. 환자가 기피하는 재료는 절대 사용하지 않습니다.
 3. 영양 균형을 고려하되, 소화가 쉬워야 합니다.
 4. 각 식사는 현실적이고 실제로 만들 수 있는 메뉴여야 합니다.
+5. **언어**: 모든 응답(음식명, 설명, 조리법 등)은 반드시 **한국어(Korean)**로 작성해야 합니다.
 
 **현재 회복 단계**: ${request.recoveryPhase} (${guidelines.description})
 **허용 음식**: ${guidelines.allowed.join(', ')}
@@ -111,7 +112,9 @@ ${request.preferences?.availableIngredients?.length ? `**보유 식재료**: ${r
 ${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRestrictions.join(', ')}` : ''}
 
 아침, 점심, 저녁, 간식 2개를 포함한 총 5개의 식사를 JSON 배열로 생성해주세요.
-반드시 배열 형식 [...] 으로 반환해야 합니다!`
+반드시 배열 형식 [...] 으로 반환해야 합니다!
+모든 텍스트는 **한국어**로 작성해주세요.
+`
 
     try {
         const response = await llm.chat({
@@ -232,6 +235,7 @@ export async function modifyMealsWithChat(request: MealChatRequest): Promise<{
 2. 회복 단계에 맞는 음식으로만 대체합니다.
 3. 영양 균형을 유지합니다.
 4. 수정 이유를 친절하게 설명합니다.
+5. 모든 응답은 **한국어**로 작성합니다.
 
 **현재 식단**:
 ${JSON.stringify(request.currentMeals, null, 2)}

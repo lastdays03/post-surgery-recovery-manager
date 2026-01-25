@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Send, Bot, User, Loader2 } from 'lucide-react'
+import { ChatInput } from '@/components/ai/chat-input'
+import { Bot, User, Loader2 } from 'lucide-react'
 import type { Meal } from '@/lib/types/meal.types'
 
 interface Message {
@@ -27,20 +26,27 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
     ])
     const [inputValue, setInputValue] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const chatEndRef = useRef<HTMLDivElement>(null)
+    const chatContainerRef = useRef<HTMLDivElement>(null)
 
     const scrollToBottom = () => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        if (chatContainerRef.current) {
+            const { scrollHeight, clientHeight } = chatContainerRef.current
+            chatContainerRef.current.scrollTo({
+                top: scrollHeight - clientHeight,
+                behavior: 'smooth'
+            })
+        }
     }
 
     useEffect(() => {
         scrollToBottom()
     }, [messages])
 
-    const handleSendMessage = async () => {
-        if (!inputValue.trim() || isLoading) return
+    const handleSendMessage = async (inputMessage?: string) => {
+        const messageToSend = inputMessage || inputValue
+        if (!messageToSend.trim() || isLoading) return
 
-        const userMessage = inputValue.trim()
+        const userMessage = messageToSend.trim()
         setInputValue('')
         setMessages(prev => [...prev, { role: 'user', content: userMessage }])
         setIsLoading(true)
@@ -94,7 +100,10 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
             </CardHeader>
             <CardContent className="p-0">
                 {/* Chat Area */}
-                <div className="h-[400px] overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <div
+                    ref={chatContainerRef}
+                    className="h-[400px] overflow-y-auto p-6 space-y-4 bg-gray-50"
+                >
                     {messages.map((message, index) => (
                         <div
                             key={index}
@@ -133,35 +142,20 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
                             </div>
                         </div>
                     )}
-                    <div ref={chatEndRef} />
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 bg-white border-t">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault()
-                            handleSendMessage()
-                        }}
-                        className="flex gap-2"
-                    >
-                        <Input
-                            placeholder="식단 수정 요청을 입력하세요..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            disabled={isLoading}
-                            className="flex-1 focus-visible:ring-green-500"
-                        />
-                        <Button
-                            type="submit"
-                            disabled={isLoading || !inputValue.trim()}
-                            className="bg-green-600 hover:bg-green-700 px-4"
-                        >
-                            <Send size={20} />
-                        </Button>
-                    </form>
-                    <p className="text-[10px] text-gray-400 mt-2 text-center">
-                        💡 예: "계란 알레르기가 있어요", "더 부드러운 음식으로 바꿔주세요"
+                <ChatInput
+                    onSend={(message) => {
+                        setInputValue(message)
+                        handleSendMessage(message)
+                    }}
+                    isLoading={isLoading}
+                />
+
+                <div className="bg-white pb-4">
+                    <p className="text-[10px] text-gray-400 text-center">
+                        💡 예: "계란 빼줘" 또는 "부드러운 음식으로 변경"
                     </p>
                 </div>
             </CardContent>

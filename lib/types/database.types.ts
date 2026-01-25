@@ -180,6 +180,38 @@ export interface Database {
                     created_at?: string
                 }
             }
+            meal_plans: {
+                Row: {
+                    id: string
+                    user_id: string
+                    date: string
+                    recovery_phase: string
+                    meals: Json
+                    preferences: Json | null
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    date: string
+                    recovery_phase: string
+                    meals: Json
+                    preferences?: Json | null
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    date?: string
+                    recovery_phase?: string
+                    meals?: Json
+                    preferences?: Json | null
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
         }
         Functions: {
             match_documents: {

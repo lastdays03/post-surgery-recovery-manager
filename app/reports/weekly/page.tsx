@@ -54,21 +54,25 @@ export default function WeeklyReportPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 py-8">
-            <div className="container max-w-2xl mx-auto px-4 space-y-6">
-                <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-gray-900">주간 회복 리포트</h1>
-                    <div className="flex gap-2">
+            <div className="container max-w-4xl mx-auto px-4 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">주간 회복 리포트</h1>
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={() => report && downloadWeeklyReport(report)}
                             disabled={isGenerating || !report}
+                            className="w-full sm:w-auto whitespace-nowrap"
                         >
                             <FileDown className="w-4 h-4 mr-2" />
-                            {isGenerating ? '생성 중...' : 'PDF 다운로드'}
+                            {isGenerating ? '생성 중...' : 'PDF'}
                         </Button>
-                        <Button size="sm" onClick={() => router.push('/dashboard')}>
-                            대시보드
+                        <Button
+                            variant="secondary"
+                            onClick={() => router.push('/dashboard')}
+                            className="w-full sm:w-auto whitespace-nowrap"
+                        >
+                            ← 대시보드
                         </Button>
                     </div>
                 </div>
@@ -110,15 +114,22 @@ export default function WeeklyReportPage() {
                     <CardContent>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={report.dailyScores}>
+                                <LineChart data={report.dailyScores} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="date"
                                         tickFormatter={(str) => str.slice(5)}
                                         fontSize={12}
                                     />
-                                    <YAxis domain={[0, 10]} fontSize={12} />
-                                    <Tooltip />
+                                    <YAxis domain={[0, 10]} fontSize={12} width={30} />
+                                    <Tooltip
+                                        labelStyle={{ color: '#111827', fontWeight: 600, marginBottom: '0.25rem' }}
+                                        contentStyle={{
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+                                        }}
+                                    />
                                     <Legend />
                                     <Line type="monotone" dataKey="pain" name="통증" stroke="#ef4444" strokeWidth={2} />
                                     <Line type="monotone" dataKey="energy" name="기력" stroke="#3b82f6" strokeWidth={2} />

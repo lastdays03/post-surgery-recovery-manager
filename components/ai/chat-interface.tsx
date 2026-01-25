@@ -53,7 +53,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
             {/* Chat Window */}
             <div
                 className={cn(
-                    "fixed bottom-24 right-6 z-40 w-[380px] h-[600px] max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 origin-bottom-right",
+                    "fixed bottom-24 right-6 z-40 w-[calc(100vw-3rem)] sm:w-[380px] h-[70vh] sm:h-[600px] max-h-[80vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 origin-bottom-right",
                     isOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-90 translate-y-10 pointer-events-none"
                 )}
             >
