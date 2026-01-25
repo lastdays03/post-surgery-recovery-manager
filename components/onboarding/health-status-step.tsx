@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { createProfile } from '@/lib/actions/profile-actions'
+import { createProfile, type CreateProfileResponse } from '@/lib/actions/profile-actions'
 import { saveProfile } from '@/lib/local-storage'
 
 const DIGESTIVE_OPTIONS = [
@@ -73,10 +73,8 @@ export function HealthStatusStep() {
                 updated_at: new Date().toISOString()
             }
 
-            saveProfile(localProfile)
-
             // Supabase에 저장 시도
-            await createProfile({
+            const result = (await createProfile({
                 surgery_type: completeData.surgery_type!,
                 surgery_date: completeData.surgery_date!,
                 age: completeData.age,
@@ -84,7 +82,22 @@ export function HealthStatusStep() {
                 height: completeData.height,
                 digestive_capacity: data.digestive_capacity,
                 comorbidities: data.comorbidities
-            })
+            })) as CreateProfileResponse
+
+            if (result.success && result.profile) {
+                // 서버에서 생성된 실제 프로필 정보와 로컬 정보를 병합하여 저장
+                const finalProfile = {
+                    ...localProfile,
+                    ...result.profile,
+                    // 서버 데이터가 우선이지만 날짜 등은 로컬 형식이 필요할 수 있음
+                    id: result.profile.id || localProfile.id
+                }
+                saveProfile(finalProfile as any)
+            } else {
+                // 실패 시 로컬에서 생성한 임시 프로필 저장
+                console.error('Profile creation failed, using local fallback:', result.error)
+                saveProfile(localProfile)
+            }
 
             // 온보딩 완료 후 대시보드로 이동
             resetOnboarding()
@@ -149,7 +162,8 @@ export function HealthStatusStep() {
                             render={({ field }) => (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                     {COMORBIDITY_OPTIONS.map((option) => {
-                                        const isSelected = field.value.includes(option)
+                                        const value = field.value || []
+                                        const isSelected = value.includes(option)
                                         const isNone = option === '없음'
 
                                         return (

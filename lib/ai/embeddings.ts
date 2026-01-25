@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase-client'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { LLMService } from './llm-service'
 import { SURGERY_PROTOCOLS } from '@/data/protocols/surgery-protocols'
 import { SAMPLE_MEALS } from '@/data/meals/sample-meals'

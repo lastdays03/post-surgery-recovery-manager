@@ -13,9 +13,9 @@ export default function OnboardingPage() {
             {/* Progress Bar */}
             <div className="max-w-3xl mx-auto mb-12">
                 <div className="flex justify-between mb-4">
-                    <span className={`text-sm font-bold ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>01 수술 정보</span>
-                    <span className={`text-sm font-bold ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>02 개인 정보</span>
-                    <span className={`text-sm font-bold ${currentStep >= 3 ? 'text-blue-600' : 'text-gray-500'}`}>03 건강 상태</span>
+                    <span className={`text-sm font-bold ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-600'}`}>01 수술 정보</span>
+                    <span className={`text-sm font-bold ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-600'}`}>02 개인 정보</span>
+                    <span className={`text-sm font-bold ${currentStep >= 3 ? 'text-blue-600' : 'text-gray-600'}`}>03 건강 상태</span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div

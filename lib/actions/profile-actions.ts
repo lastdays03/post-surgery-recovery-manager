@@ -1,6 +1,6 @@
 'use server'
 
-import { supabaseAdmin } from '@/lib/supabase-client'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { v4 as uuidv4 } from 'uuid'
 
 export interface CreateProfileInput {
@@ -13,7 +13,14 @@ export interface CreateProfileInput {
     comorbidities: string[]
 }
 
-export async function createProfile(input: CreateProfileInput) {
+export interface CreateProfileResponse {
+    success: boolean
+    localStorageKey?: string
+    profile?: any
+    error?: string
+}
+
+export async function createProfile(input: CreateProfileInput): Promise<CreateProfileResponse> {
     try {
         const localStorageKey = uuidv4()
 
@@ -31,8 +38,7 @@ export async function createProfile(input: CreateProfileInput) {
 
         if (error) {
             console.error('Profile creation error:', error)
-            // Supabase 에러 시에도 로컬 저장은 진행 (클라이언트에서 처리하도록 성공으로 간주하되 프로필 없음)
-            return { success: true, localStorageKey, profile: null, error: error.message }
+            return { success: false, localStorageKey, profile: null, error: error.message }
         }
 
         return { success: true, localStorageKey, profile: data }

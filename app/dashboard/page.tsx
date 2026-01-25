@@ -7,7 +7,7 @@ import { calculateRecoveryPhase, getDaysSinceSurgery } from '@/lib/profiling-eng
 import type { UserProfile } from '@/lib/types/user.types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Activity, Apple, Calendar, Settings } from 'lucide-react'
+import { Activity, Apple, Calendar, Settings, BarChart2 } from 'lucide-react'
 import { ChatInterface } from '@/components/ai/chat-interface'
 
 export default function DashboardPage() {
@@ -58,7 +58,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center mb-12">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">회복 관리 대시보드</h1>
-                        <p className="text-gray-600">오늘도 건강한 회복을 응원합니다!</p>
+                        <p className="text-gray-700 font-medium">오늘도 건강한 회복을 응원합니다!</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={handleReset} className="flex items-center gap-2">
                         <Settings size={18} /> 초기화
@@ -74,7 +74,7 @@ export default function DashboardPage() {
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900">수술 {daysElapsed}일차</h2>
                         </div>
-                        <p className="text-gray-500 text-lg mb-2 font-medium">현재 진행 단계</p>
+                        <p className="text-gray-700 text-lg mb-2 font-bold">현재 진행 단계</p>
                         <p className="text-4xl font-bold mb-6 text-blue-600">{currentPhase.description}</p>
                         <div className="bg-blue-50 p-5 rounded-xl border border-blue-100">
                             <p className="font-bold text-blue-800 mb-2">주의사항</p>
@@ -93,26 +93,44 @@ export default function DashboardPage() {
                                     <div className="p-3 bg-green-100 rounded-full text-green-600">
                                         <Apple size={24} />
                                     </div>
-                                    <h2 className="text-2xl font-bold text-gray-800">식단 가이드</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">식단 가이드</h2>
                                 </div>
-                                <p className="text-gray-600">
+                                <p className="text-gray-700 font-medium">
                                     현재 <strong>{currentPhase.name}</strong> 단계에 맞는<br />
                                     오늘의 추천 식단을 확인하세요.
                                 </p>
                             </Card>
                         </button>
 
-                        <Card className="opacity-70">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-red-100 rounded-full text-red-600">
-                                    <Activity size={24} />
+                        <button onClick={() => router.push('/symptom-check')} className="block text-left">
+                            <Card className="hover:shadow-xl transition-shadow cursor-pointer h-full border-2 border-transparent hover:border-red-500">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-red-100 rounded-full text-red-600">
+                                        <Activity size={24} />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-gray-900">오늘의 컨디션</h2>
                                 </div>
-                                <h2 className="text-2xl font-bold text-gray-800">재활 운동 (준비중)</h2>
-                            </div>
-                            <p className="text-gray-600">
-                                회복 단계별 맞춤 운동 가이드가<br />곧 업데이트될 예정입니다.
-                            </p>
-                        </Card>
+                                <p className="text-gray-700 font-medium">
+                                    통증과 기력을 기록하고<br />
+                                    하루 하루의 회복을 추적하세요.
+                                </p>
+                            </Card>
+                        </button>
+
+                        <button onClick={() => router.push('/reports/weekly')} className="block text-left">
+                            <Card className="hover:shadow-xl transition-shadow cursor-pointer h-full border-2 border-transparent hover:border-blue-500">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-3 bg-blue-100 rounded-full text-blue-600">
+                                        <BarChart2 size={24} />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-gray-900">주간 리포트</h2>
+                                </div>
+                                <p className="text-gray-700 font-medium">
+                                    지난 일주일간의 회복 추세와<br />
+                                    통계 데이터를 확인하세요.
+                                </p>
+                            </Card>
+                        </button>
                     </div>
                 </div>
 

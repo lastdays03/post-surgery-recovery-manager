@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-client'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { chatWithAssistant } from '@/lib/ai/chat-assistant'
 
 export async function POST(req: NextRequest) {

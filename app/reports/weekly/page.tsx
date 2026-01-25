@@ -9,11 +9,14 @@ import { getWeeklyLogs } from '@/lib/services/log-service'
 import { calculateWeeklyProgress } from '@/lib/utils/analytics'
 import { WeeklyReport } from '@/lib/types/report.types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { usePdfReport } from '@/hooks/use-pdf-report'
+import { FileDown } from 'lucide-react'
 
 export default function WeeklyReportPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(true)
     const [report, setReport] = useState<WeeklyReport | null>(null)
+    const { downloadWeeklyReport, isGenerating } = usePdfReport()
 
     useEffect(() => {
         async function loadData() {
@@ -52,23 +55,34 @@ export default function WeeklyReportPage() {
     return (
         <div className="container max-w-2xl mx-auto p-4 space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">주간 회복 리포트</h1>
-                <Button size="sm" onClick={() => router.push('/dashboard')}>
-                    대시보드
-                </Button>
+                <h1 className="text-2xl font-bold text-gray-900">주간 회복 리포트</h1>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => report && downloadWeeklyReport(report)}
+                        disabled={isGenerating || !report}
+                    >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        {isGenerating ? '생성 중...' : 'PDF 다운로드'}
+                    </Button>
+                    <Button size="sm" onClick={() => router.push('/dashboard')}>
+                        대시보드
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm text-gray-500">평균 통증</CardTitle>
+                        <CardTitle className="text-base text-gray-900 font-bold">평균 통증</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-red-500">
                             {report.avgPainLevel}
-                            <span className="text-sm text-gray-400 ml-1">/ 10</span>
+                            <span className="text-sm text-gray-700 font-bold ml-1">/ 10</span>
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="text-xs text-gray-700 mt-1 font-medium">
                             {report.symptomTrend === 'improving' && '▼ 감소 추세'}
                             {report.symptomTrend === 'worsening' && '▲ 증가 추세'}
                             {report.symptomTrend === 'stable' && '- 변화 없음'}
@@ -77,12 +91,12 @@ export default function WeeklyReportPage() {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm text-gray-500">평균 기력</CardTitle>
+                        <CardTitle className="text-base text-gray-900 font-bold">평균 기력</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-blue-500">
                             {report.avgEnergyLevel}
-                            <span className="text-sm text-gray-400 ml-1">/ 10</span>
+                            <span className="text-sm text-gray-700 font-bold ml-1">/ 10</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -90,7 +104,7 @@ export default function WeeklyReportPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>회복 추이 (최근 7일)</CardTitle>
+                    <CardTitle className="text-lg text-gray-900 font-bold">회복 추이 (최근 7일)</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="h-64 w-full">
@@ -115,9 +129,9 @@ export default function WeeklyReportPage() {
 
             <Card>
                 <CardContent className="pt-6">
-                    <div className="text-center text-gray-600">
+                    <div className="text-center text-gray-700 font-medium">
                         <p>기록 충실도: <span className="font-bold text-black">{report.complianceRate}%</span></p>
-                        <p className="text-sm mt-1">
+                        <p className="text-base font-medium text-gray-700 mt-2">
                             {report.complianceRate >= 80 ? '아주 훌륭해요! 꾸준한 기록이 회복에 도움이 됩니다.' : '조금 더 자주 기록해보세요.'}
                         </p>
                     </div>

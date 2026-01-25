@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase-client'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export interface UsageLog {
     userId: string

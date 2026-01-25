@@ -94,8 +94,8 @@ export default function MealPlanPage() {
     const MealCard = ({ meal, title }: { meal?: Meal, title: string }) => {
         if (!meal) return (
             <Card className="mb-4 bg-gray-50 border-dashed border-2">
-                <h3 className="text-xl font-bold mb-2 text-gray-400">{title}</h3>
-                <p className="text-gray-500">추천 식단이 없습니다.</p>
+                <h3 className="text-xl font-bold mb-2 text-gray-500">{title}</h3>
+                <p className="text-gray-600 font-medium">추천 식단이 없습니다.</p>
             </Card>
         )
 
@@ -119,7 +119,7 @@ export default function MealPlanPage() {
                 </div>
 
                 <div className="mb-4">
-                    <h4 className="font-semibold mb-2 text-gray-800">재료</h4>
+                    <h4 className="font-semibold mb-2 text-gray-900">재료</h4>
                     <p className="text-gray-700 text-sm font-medium">{meal.ingredients.join(', ')}</p>
                 </div>
 
@@ -142,7 +142,7 @@ export default function MealPlanPage() {
                 </div>
 
                 <h1 className="text-4xl font-bold mb-2 text-gray-900">오늘의 추천 식단</h1>
-                <p className="text-xl text-gray-600 mb-8">
+                <p className="text-xl text-gray-700 font-medium mb-8">
                     현재 단계: <span className="font-bold text-blue-600">{currentPhaseName}</span>
                 </p>
 
@@ -152,19 +152,19 @@ export default function MealPlanPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="text-center bg-white p-4 rounded-xl shadow-sm">
                             <p className="text-3xl font-bold text-blue-600">{dailyNutrition.calories}</p>
-                            <p className="text-gray-500 text-sm">총 칼로리 (kcal)</p>
+                            <p className="text-gray-600 text-sm font-medium">총 칼로리 (kcal)</p>
                         </div>
                         <div className="text-center bg-white p-4 rounded-xl shadow-sm">
                             <p className="text-3xl font-bold text-green-600">{dailyNutrition.protein}g</p>
-                            <p className="text-gray-500 text-sm">단백질</p>
+                            <p className="text-gray-600 text-sm font-medium">단백질</p>
                         </div>
                         <div className="text-center bg-white p-4 rounded-xl shadow-sm">
                             <p className="text-3xl font-bold text-orange-600">{dailyNutrition.fat}g</p>
-                            <p className="text-gray-500 text-sm">지방</p>
+                            <p className="text-gray-600 text-sm font-medium">지방</p>
                         </div>
                         <div className="text-center bg-white p-4 rounded-xl shadow-sm">
                             <p className="text-3xl font-bold text-gray-600">{dailyNutrition.carbs}g</p>
-                            <p className="text-gray-500 text-sm">탄수화물</p>
+                            <p className="text-gray-600 text-sm font-medium">탄수화물</p>
                         </div>
                     </div>
                 </Card>

@@ -13,7 +13,12 @@ export async function saveSymptomLog(profileId: string, date: string, symptoms: 
         })
 
     if (error) {
-        console.error('Error saving symptom log:', error)
+        console.error('Error saving symptom log:', JSON.stringify({
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        }, null, 2))
         return false
     }
 
@@ -42,7 +47,12 @@ export async function getWeeklyLogs(profileId: string, startDate: string, endDat
         .order('log_date', { ascending: true })
 
     if (error) {
-        console.error('Error fetching weekly logs:', error)
+        console.error('Error fetching weekly logs:', JSON.stringify({
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        }, null, 2))
         return []
     }
     return (data as any[]) || []
