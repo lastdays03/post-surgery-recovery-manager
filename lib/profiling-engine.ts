@@ -1,13 +1,15 @@
 import { SURGERY_PROTOCOLS } from '@/data/protocols/surgery-protocols'
 import type { UserProfile } from '@/lib/types/user.types'
 import type { RecoveryPhase, SurgeryType } from '@/lib/types/protocol.types'
+import { normalizeSurgeryType } from '@/lib/utils/surgery-mapper'
 
 export function calculateRecoveryPhase(profile: UserProfile): RecoveryPhase {
-    const surgeryType = profile.surgery_type as SurgeryType
-    const protocol = SURGERY_PROTOCOLS[surgeryType]
+    // 한글 수술명을 영어 키로 정규화
+    const normalizedType = normalizeSurgeryType(profile.surgery_type)
+    const protocol = SURGERY_PROTOCOLS[normalizedType as SurgeryType]
 
     if (!protocol) {
-        throw new Error(`Unknown surgery type: ${profile.surgery_type}`)
+        throw new Error(`Unknown surgery type: ${profile.surgery_type} (normalized: ${normalizedType})`)
     }
 
     const today = new Date()

@@ -1,6 +1,27 @@
 export interface ChatMessage {
-    role: 'system' | 'user' | 'assistant'
+    role: 'system' | 'user' | 'assistant' | 'tool'
     content: string
+    tool_call_id?: string
+    name?: string
+    tool_calls?: ToolCall[]
+}
+
+export interface ToolCall {
+    id: string
+    type: 'function'
+    function: {
+        name: string
+        arguments: string
+    }
+}
+
+export interface ToolDefinition {
+    type: 'function'
+    function: {
+        name: string
+        description: string
+        parameters: any
+    }
 }
 
 export interface LLMRequest {
@@ -8,10 +29,12 @@ export interface LLMRequest {
     temperature?: number
     maxTokens?: number
     jsonMode?: boolean
+    tools?: ToolDefinition[]
 }
 
 export interface LLMResponse {
     content: string
+    toolCalls?: ToolCall[]
     usage: {
         promptTokens: number
         completionTokens: number

@@ -12,8 +12,11 @@ export class OpenAIProvider implements LLMClient {
 
     async chat(request: LLMRequest): Promise<LLMResponse> {
         const messages: OpenAI.Chat.ChatCompletionMessageParam[] = request.messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
+            role: msg.role as any,
+            content: msg.role === 'tool' ? msg.content : msg.content,
+            tool_call_id: msg.tool_call_id,
+            name: msg.name,
+            tool_calls: msg.tool_calls as any
         }))
 
         const response = await this.client.chat.completions.create({
@@ -21,6 +24,7 @@ export class OpenAIProvider implements LLMClient {
             messages,
             temperature: request.temperature,
             max_tokens: request.maxTokens,
+            tools: request.tools as any,
             response_format: request.jsonMode ? { type: 'json_object' } : undefined
         })
 
@@ -28,6 +32,14 @@ export class OpenAIProvider implements LLMClient {
 
         return {
             content: choice.message.content || '',
+            toolCalls: choice.message.tool_calls?.map((tc: any) => ({
+                id: tc.id,
+                type: 'function',
+                function: {
+                    name: tc.function.name,
+                    arguments: tc.function.arguments
+                }
+            })),
             usage: {
                 promptTokens: response.usage?.prompt_tokens || 0,
                 completionTokens: response.usage?.completion_tokens || 0,

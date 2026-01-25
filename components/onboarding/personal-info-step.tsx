@@ -16,7 +16,7 @@ export function PersonalInfoStep() {
         handleSubmit,
         formState: { errors }
     } = useForm<PersonalInfoInput>({
-        resolver: zodResolver(personalInfoSchema),
+        resolver: zodResolver(personalInfoSchema) as any, // Cast to avoid strict type mismatch with optionality
         defaultValues: {
             age: formData.age,
             weight: formData.weight,
@@ -38,7 +38,7 @@ export function PersonalInfoStep() {
             <h2 className="text-4xl font-bold mb-8 text-center text-gray-900">개인 정보 입력</h2>
 
             <Card>
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form onSubmit={handleSubmit((data) => onSubmit(data as PersonalInfoInput))}>
                     <p className="text-lg text-gray-700 mb-6 font-medium">
                         더 정확한 영양 계산을 위해 아래 정보를 입력해주세요. (선택사항)
                     </p>
@@ -48,7 +48,7 @@ export function PersonalInfoStep() {
                         label="나이"
                         placeholder="예: 45"
                         error={errors.age?.message}
-                        {...register('age', { valueAsNumber: true })}
+                        {...register('age', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     />
 
                     <Input
@@ -56,7 +56,7 @@ export function PersonalInfoStep() {
                         label="체중 (kg)"
                         placeholder="예: 65"
                         error={errors.weight?.message}
-                        {...register('weight', { valueAsNumber: true })}
+                        {...register('weight', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     />
 
                     <Input
@@ -64,7 +64,7 @@ export function PersonalInfoStep() {
                         label="키 (cm)"
                         placeholder="예: 170"
                         error={errors.height?.message}
-                        {...register('height', { valueAsNumber: true })}
+                        {...register('height', { setValueAs: (v) => (v === '' ? undefined : Number(v)) })}
                     />
 
                     {/* 버튼 그룹 */}

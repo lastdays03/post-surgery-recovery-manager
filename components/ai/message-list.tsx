@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Message } from '@/hooks/use-chat'
 import { Bot, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { MealSuggestionCard } from './meal-suggestion-card'
 
 interface MessageListProps {
     messages: Message[]
@@ -14,6 +15,34 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, isLoading])
+
+    // 식단 제안 태그 파싱 헬퍼
+    const renderMessageContent = (content: string) => {
+        const mealRegex = /<meal_suggestion>([\s\S]*?)<\/meal_suggestion>/
+        const match = content.match(mealRegex)
+
+        if (match) {
+            try {
+                const mealData = JSON.parse(match[1])
+                const textPart = content.replace(mealRegex, '').trim()
+
+                return (
+                    <div className="space-y-3">
+                        {textPart && <p>{textPart}</p>}
+                        <MealSuggestionCard
+                            meal={mealData}
+                            onSelect={(meal) => alert(`${meal.name}이(가) 식단에 추가되었습니다!`)}
+                        />
+                    </div>
+                )
+            } catch (e) {
+                console.error('Failed to parse meal suggestion JSON', e)
+                return <p>{content}</p>
+            }
+        }
+
+        return <p>{content}</p>
+    }
 
     return (
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
@@ -37,7 +66,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
                 <div
                     key={message.id}
                     className={cn(
-                        "flex gap-3 max-w-[75%] w-fit", // Added w-fit to prevent unwanted stretching
+                        "flex gap-3 max-w-[85%] w-fit",
                         message.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
                     )}
                 >
@@ -49,12 +78,14 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
                     </div>
 
                     <div className={cn(
-                        "rounded-2xl px-4 py-3 text-base shadow-sm whitespace-pre-wrap leading-relaxed break-words", // Increased to text-base (16px)
+                        "rounded-2xl px-4 py-3 text-base shadow-sm whitespace-pre-wrap leading-relaxed break-words",
                         message.role === 'user'
                             ? "bg-blue-600 text-white rounded-tr-none"
                             : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"
                     )}>
-                        {message.content}
+                        {message.role === 'assistant'
+                            ? renderMessageContent(message.content)
+                            : message.content}
                     </div>
                 </div>
             ))}
