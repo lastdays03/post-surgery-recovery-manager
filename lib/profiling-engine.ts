@@ -6,10 +6,11 @@ import { normalizeSurgeryType } from '@/lib/utils/surgery-mapper'
 export function calculateRecoveryPhase(profile: UserProfile): RecoveryPhase {
     // 한글 수술명을 영어 키로 정규화
     const normalizedType = normalizeSurgeryType(profile.surgery_type)
-    const protocol = SURGERY_PROTOCOLS[normalizedType as SurgeryType]
+    let protocol = SURGERY_PROTOCOLS[normalizedType as SurgeryType]
 
     if (!protocol) {
-        throw new Error(`Unknown surgery type: ${profile.surgery_type} (normalized: ${normalizedType})`)
+        console.warn(`Unknown surgery type: ${profile.surgery_type}. Using GENERAL protocol.`)
+        protocol = SURGERY_PROTOCOLS['general']
     }
 
     const today = new Date()

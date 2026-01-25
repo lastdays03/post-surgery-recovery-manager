@@ -29,3 +29,4 @@ export type SurgeryType =
     | 'tkr'
     | 'spinal_fusion'
     | 'cholecystectomy'
+    | 'general'

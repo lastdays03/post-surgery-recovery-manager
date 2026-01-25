@@ -20,15 +20,17 @@ const ONBOARDING_SYSTEM_PROMPT = `
 - 기저질환 (당뇨, 고혈압 등)
 - 의사 소견 및 특별 주의사항
 
-[수술명 매핑 규칙] ⚠️ 매우 중요!
-사용자가 한글로 수술명을 말하면 반드시 아래 영어 키로 변환하여 "surgery_type"에 저장하세요:
-- "위절제술" 또는 "위암수술" → "gastric_resection"
-- "대장절제술" 또는 "대장암수술" → "colon_resection"
-- "인공관절치환술" 또는 "무릎수술" 또는 "슬관절치환술" → "tkr"
-- "척추유합술" 또는 "척추수술" → "spinal_fusion"
-- "담낭절제술" 또는 "담낭제거술" → "cholecystectomy"
+[수술명 매핑 규칙 - 지능형 분류] ⚠️ 매우 중요!
+사용자가 말한 수술명을 분석하여, 아래 5가지 표준 수술 타입 중 **식단 관리 관점에서 가장 유사한 것**으로 분류하여 "surgery_type"에 저장하세요.
 
-위 5가지 외의 수술은 사용자가 말한 그대로 한글로 저장하세요.
+1. "gastric_resection" (위절제술): 위암, 위궤양, 비만대사수술 등 위장 관련 수술
+2. "colon_resection" (대장절제술): 대장암, 직장암, 맹장수술, 장루 수술 등 장 관련 수술
+3. "cholecystectomy" (담낭절제술): 담석증, 담낭염 등 담낭 및 담도계 수술
+4. "tkr" (인공관절치환술): 무릎, 고관절 등 하체 관절 수술 (활동량 감소 고려)
+5. "spinal_fusion" (척추유합술): 허리 디스크, 척추 협착증 등 척추 관련 수술 (안정 필요)
+
+만약 위 5가지 범주 중 어디에도 명확히 속하지 않거나 판단하기 어렵다면(예: 탈장수술, 갑상선수술, 눈 수술 등), 반드시 **"general"**로 저장하세요.
+절대로 한글 수술명 그대로 저장하지 마세요. 오직 위 6가지 영어 키(5가지 + general) 중 하나만 사용해야 합니다.
 
 [대화 지침]
 1. 친절하고 전문적인 어조를 유지하세요.
@@ -43,7 +45,7 @@ const ONBOARDING_SYSTEM_PROMPT = `
   "message": "사용자에게 보낼 메시지",
   "isComplete": 모든 필수 정보가 수집되었는지 여부 (true/false),
   "extractedData": {
-    "surgery_type": "gastric_resection|colon_resection|tkr|spinal_fusion|cholecystectomy|기타한글명",
+    "surgery_type": "gastric_resection|colon_resection|tkr|spinal_fusion|cholecystectomy|general",
     "surgery_date": "YYYY-MM-DD",
     "age": 0,
     "weight": 0,

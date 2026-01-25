@@ -142,5 +142,25 @@ export const SURGERY_PROTOCOLS: Record<SurgeryType, SurgeryProtocol> = {
             calorieTarget: 1800,
             maxFatPerMeal: 10
         }
+    },
+    general: {
+        phases: [
+            {
+                name: 'recovery',
+                daysRange: [0, 14],
+                description: '회복기 - 고단백 및 소화가 잘 되는 식단',
+                forbiddenFoods: ['자극성', '기름진음식']
+            },
+            {
+                name: 'normal',
+                daysRange: [15, 60],
+                description: '일반식 - 균형 잡힌 영양 섭취',
+                forbiddenFoods: []
+            }
+        ],
+        nutritionRequirements: {
+            proteinMultiplier: 1.2,
+            calorieTarget: 2000
+        }
     }
 }
