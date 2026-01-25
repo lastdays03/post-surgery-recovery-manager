@@ -17,6 +17,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "file-saver": "^2.0.5",
+    "groq-sdk": "^0.37.0",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
     "openai": "^6.16.0",

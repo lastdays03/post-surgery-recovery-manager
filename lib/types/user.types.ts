@@ -5,6 +5,11 @@ export interface UserProfile {
     digestive_capacity: 'good' | 'moderate' | 'poor'
     comorbidities: string[]
     weight?: number
+    meal_preferences?: {
+        favoriteFood?: string[]
+        avoidIngredients?: string[]
+        dietaryRestrictions?: string[]
+    }
     created_at: Date
     updated_at: Date
 }

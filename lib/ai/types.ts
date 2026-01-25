@@ -47,4 +47,4 @@ export interface LLMClient {
     generateEmbedding(text: string): Promise<number[]>
 }
 
-export type AIProvider = 'openai' | 'google' | 'mock'
+export type AIProvider = 'openai' | 'google' | 'groq' | 'mock'

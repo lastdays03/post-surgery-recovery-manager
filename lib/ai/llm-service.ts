@@ -1,6 +1,7 @@
 import { LLMClient, AIProvider } from './types'
 import { OpenAIProvider } from './providers/openai-provider'
 import { GeminiProvider } from './providers/gemini-provider'
+import { GroqProvider } from './providers/groq-provider'
 import { MockProvider } from './providers/mock-provider'
 
 export class LLMService {
@@ -21,7 +22,9 @@ export class LLMService {
 
         const apiKey = provider === 'google'
             ? process.env.GOOGLE_API_KEY
-            : process.env.OPENAI_API_KEY
+            : provider === 'groq'
+                ? process.env.GROQ_API_KEY
+                : process.env.OPENAI_API_KEY
 
         if (!apiKey) {
             throw new Error(`Missing API Key for provider: ${provider}`)
@@ -31,6 +34,8 @@ export class LLMService {
 
         if (provider === 'google') {
             this.instance = new GeminiProvider(apiKey, process.env.GOOGLE_MODEL_NAME || 'gemini-pro')
+        } else if (provider === 'groq') {
+            this.instance = new GroqProvider(apiKey, process.env.GROQ_MODEL_NAME || 'llama-3.3-70b-versatile')
         } else {
             this.instance = new OpenAIProvider(apiKey, process.env.OPENAI_MODEL_NAME || 'gpt-4o')
         }
