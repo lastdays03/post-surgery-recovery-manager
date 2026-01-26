@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { ChatInput } from '@/components/ai/chat-input'
-import { Bot, User, Loader2 } from 'lucide-react'
+
+import { Bot, User, Loader2, Send } from 'lucide-react'
 import type { Meal } from '@/lib/types/meal.types'
 
 interface Message {
@@ -145,18 +145,29 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
                 </div>
 
                 {/* Input Area */}
-                <ChatInput
-                    onSend={(message) => {
-                        setInputValue(message)
-                        handleSendMessage(message)
-                    }}
-                    isLoading={isLoading}
-                />
-
-                <div className="bg-white pb-4">
-                    <p className="text-[10px] text-gray-400 text-center">
-                        💡 예: "계란 빼줘" 또는 "부드러운 음식으로 변경"
-                    </p>
+                <div className="p-6 bg-white border-t">
+                    <div className="flex gap-3">
+                        <input
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            placeholder="메시지를 입력해 주세요..."
+                            disabled={isLoading}
+                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-base"
+                        />
+                        <button
+                            onClick={() => handleSendMessage()}
+                            disabled={isLoading || !inputValue.trim()}
+                            className="bg-[#8ba4ff] hover:bg-[#7a93ee] disabled:bg-blue-200 text-white w-[60px] h-[60px] rounded-xl transition-colors flex items-center justify-center shadow-sm"
+                        >
+                            <Send size={24} className="ml-0.5 mt-0.5" />
+                        </button>
+                    </div>
+                    <div className="bg-white pt-4">
+                        <p className="text-[10px] text-gray-400 text-center">
+                            💡 예: "계란 빼줘" 또는 "부드러운 음식으로 변경"
+                        </p>
+                    </div>
                 </div>
             </CardContent>
         </Card>

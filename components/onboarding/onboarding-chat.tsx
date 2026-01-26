@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Send, User, Bot, Loader2, CheckCircle2 } from 'lucide-react'
 
 interface Message {
@@ -117,8 +116,8 @@ export function OnboardingChat() {
                             </div>
                             <div
                                 className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${message.role === 'user'
-                                        ? 'bg-blue-600 text-white rounded-tr-none'
-                                        : 'bg-white text-gray-800 rounded-tl-none border'
+                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    : 'bg-white text-gray-800 rounded-tl-none border'
                                     }`}
                             >
                                 {message.content}
@@ -152,30 +151,25 @@ export function OnboardingChat() {
 
             {/* Input Area */}
             {!isComplete && (
-                <div className="p-4 bg-white border-t">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault()
-                            handleSendMessage()
-                        }}
-                        className="flex gap-2"
-                    >
-                        <Input
-                            placeholder="메시지를 입력해 주세요..."
+                <div className="p-6 bg-white border-t">
+                    <div className="flex gap-3">
+                        <input
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            placeholder="메시지를 입력해 주세요..."
                             disabled={isLoading}
-                            className="flex-1 focus-visible:ring-blue-500"
+                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-base"
                         />
-                        <Button
-                            type="submit"
+                        <button
+                            onClick={handleSendMessage}
                             disabled={isLoading || !inputValue.trim()}
-                            className="bg-blue-600 hover:bg-blue-700 px-4"
+                            className="bg-[#8ba4ff] hover:bg-[#7a93ee] disabled:bg-blue-200 text-white w-[60px] h-[60px] rounded-xl transition-colors flex items-center justify-center shadow-sm"
                         >
-                            <Send size={20} />
-                        </Button>
-                    </form>
-                    <p className="text-[10px] text-gray-400 mt-2 text-center">
+                            <Send size={24} className="ml-0.5 mt-0.5" />
+                        </button>
+                    </div>
+                    <p className="text-[11px] text-gray-300 text-center mt-6 font-light">
                         의료 전문 AI 상담은 정확한 회복 프로토콜에 기반하지만, 비상시에는 반드시 병원을 방문하세요.
                     </p>
                 </div>
