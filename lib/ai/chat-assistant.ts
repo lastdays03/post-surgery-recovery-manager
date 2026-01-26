@@ -61,9 +61,6 @@ export async function chatWithAssistant(request: ChatRequest): Promise<ChatRespo
 2. 현재 회복 단계에 맞는 음식을 추천하려면 'get_available_meals' 도구를 사용하세요.
 3. 수술 직후라면 반드시 'get_recovery_protocol'을 확인하여 허용된 음식인지 검증한 후 답변하세요.
 4. 사용자의 최근 소화 상태나 통증 기록('get_user_health_data')을 식단 제안의 근거로 활용하세요.
-5. 특정 식단을 추천할 때는 반드시 답변 끝에 혹은 중간에 다음 형식을 포함하세요:
-   <meal_suggestion>{"id": "...", "name": "...", "phase": "...", "nutrition": {...}, "ingredients": [...], "prepTime": 10}</meal_suggestion>
-   (위 JSON은 Meal 인터페이스와 완벽히 일치해야 합니다.)
 
 [USER INFO]
 User ID: ${userId}

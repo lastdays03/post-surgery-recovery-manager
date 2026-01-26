@@ -61,59 +61,70 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
     const guidelines = RECOVERY_PHASE_GUIDELINES[request.recoveryPhase]
 
     // 프롬프트 구성
-    const systemPrompt = `당신은 수술 후 회복 환자를 위한 전문 영양사입니다.
+    // 프롬프트 구성
+    const systemPrompt = `
+<role>
+당신은 수술 후 회복 환자를 위한 전문 영양사 AI입니다.
 환자의 회복 단계와 개인 선호도를 고려하여 하루 식단(아침, 점심, 저녁, 간식 2개)을 제안합니다.
+</role>
 
-**중요 규칙**:
-1. 반드시 회복 단계별 임상 가이드라인을 준수해야 합니다.
-2. 환자가 기피하는 재료는 절대 사용하지 않습니다.
-3. 영양 균형을 고려하되, 소화가 쉬워야 합니다.
-4. 각 식사는 현실적이고 실제로 만들 수 있는 메뉴여야 합니다.
-5. **언어**: 모든 응답(음식명, 설명, 조리법 등)은 반드시 **한국어(Korean)**로 작성해야 합니다.
+<clinical_guidelines>
+- 현재 회복 단계: ${request.recoveryPhase} (${guidelines.description})
+- 허용 음식: ${guidelines.allowed.join(', ')}
+- 금기 음식: ${guidelines.forbidden.join(', ')}
+- 음식 질감: ${guidelines.texture}
+- 주의사항: ${guidelines.notes}
+</clinical_guidelines>
 
-**현재 회복 단계**: ${request.recoveryPhase} (${guidelines.description})
-**허용 음식**: ${guidelines.allowed.join(', ')}
-**금기 음식**: ${guidelines.forbidden.join(', ')}
-**음식 질감**: ${guidelines.texture}
-**주의사항**: ${guidelines.notes}
+<instructions>
+1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH**. (e.g., "name", "mealTime", "ingredients"). NOT Korean.
+2. **Value Language**: properties values MUST be in **Korean**. (e.g., "name": "계란죽").
+3. **Format**: Return ONLY a pure JSON ID Array. Do NOT wrap it in a root object like {"data": ...}.
+4. **Safety**: Do not use forbidden ingredients.
+5. **Menu**: Ensure meals are realistic and easy to prepare.
+</instructions>
 
-**중요**: 응답은 반드시 JSON 배열 형식이어야 합니다. 객체가 아닌 배열로 반환해주세요!
+<language_rules>
+1. **Primary Language**: All values and descriptions MUST be in **Korean (Hangul)**.
+2. **Forbidden**: Do NOT use Japanese (Hiragana, Katakana, Kanji) or Chinese characters.
+3. **Consistency**: Even if the input contains other languages, translate and output in Korean.
+</language_rules>
 
-응답 형식 (배열):
+<output_format>
+Must be a valid JSON Array starting with '[' and ending with ']'.
+
+Example:
 [
   {
-    "id": "unique-id",
-    "name": "식사 이름",
-    "mealTime": "breakfast" | "lunch" | "dinner" | "snack",
+    "id": "generated-id-1",
+    "name": "소고기 야채죽",
+    "mealTime": "breakfast",
     "phase": "${request.recoveryPhase}",
-    "ingredients": ["재료1", "재료2"],
-    "instructions": ["조리 단계1", "조리 단계2"],
-    "prepTime": 조리시간(분),
-    "portionSize": "1인분",
+    "ingredients": ["다진 소고기", "당근", "쌀"],
+    "instructions": ["쌀을 불린다", "소고기를 볶는다", "물 넣고 끓인다"],
+    "prepTime": 20,
+    "portionSize": "1그릇",
     "nutrition": {
-      "calories": 숫자,
-      "protein": 숫자,
-      "carbs": 숫자,
-      "fat": 숫자
+      "calories": 300,
+      "protein": 15,
+      "carbs": 40,
+      "fat": 5
     },
-    "notes": "조리 팁 또는 주의사항"
+    "notes": "따뜻하게 드세요."
   }
-]`
+]
+</output_format>
+`
 
-    const userPrompt = `다음 정보를 바탕으로 오늘의 식단을 생성해주세요:
-
-**환자 정보**:
+    const userPrompt = `
+<patient_info>
 - 수술 종류: ${request.surgeryType || '일반 수술'}
 - 회복 단계: ${request.recoveryPhase}
+${request.preferences?.favoriteFood?.length ? `- 선호 음식: ${request.preferences.favoriteFood.join(', ')}\n` : ''}${request.preferences?.avoidIngredients?.length ? `- 기피 재료: ${request.preferences.avoidIngredients.join(', ')}\n` : ''}${request.preferences?.availableIngredients?.length ? `- 보유 식재료: ${request.preferences.availableIngredients.join(', ')}\n` : ''}${request.dietaryRestrictions?.length ? `- 식이 제한: ${request.dietaryRestrictions.join(', ')}\n` : ''}
+</patient_info>
 
-${request.preferences?.favoriteFood?.length ? `**선호 음식**: ${request.preferences.favoriteFood.join(', ')}` : ''}
-${request.preferences?.avoidIngredients?.length ? `**기피 재료**: ${request.preferences.avoidIngredients.join(', ')}` : ''}
-${request.preferences?.availableIngredients?.length ? `**보유 식재료**: ${request.preferences.availableIngredients.join(', ')}` : ''}
-${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRestrictions.join(', ')}` : ''}
-
-아침, 점심, 저녁, 간식 2개를 포함한 총 5개의 식사를 JSON 배열로 생성해주세요.
-반드시 배열 형식 [...] 으로 반환해야 합니다!
-모든 텍스트는 **한국어**로 작성해주세요.
+Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) as a strict JSON Array.
+Use English Keys for JSON structure.
 `
 
     try {
@@ -145,14 +156,39 @@ ${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRes
             }
 
             const parsed = JSON.parse(jsonContent)
+            let arrayData: any[] = []
 
-            // 🔥 객체 형식인 경우 배열로 변환
-            if (!Array.isArray(parsed)) {
-                console.warn('⚠️ LLM이 객체 형식으로 반환했습니다. 배열로 변환합니다.')
-                meals = Object.values(parsed) as Meal[]
-            } else {
-                meals = parsed as Meal[]
+            if (Array.isArray(parsed)) {
+                // 중첩 배열 처리
+                arrayData = parsed.flat(Infinity);
+            } else if (typeof parsed === 'object' && parsed !== null) {
+                // 래퍼 객체 처리
+                // 1. 알려진 키 확인
+                const potentialKeys = ['meals', 'data', 'recommendations', '식사 정보', 'plans', 'schedule'];
+                let foundArray = false;
+
+                for (const key of potentialKeys) {
+                    if (Array.isArray((parsed as any)[key])) {
+                        arrayData = (parsed as any)[key];
+                        foundArray = true;
+                        break;
+                    }
+                }
+
+                // 2. 키가 없다면 모든 값을 평탄화하여 배열 추출 시도
+                if (!foundArray) {
+                    console.warn('⚠️ LLM이 알 수 없는 객체 형식으로 반환했습니다. 값 평탄화를 시도합니다.');
+                    arrayData = Object.values(parsed).flat(Infinity);
+                }
             }
+
+            // 유효한 식단 객체만 필터링 (메타데이터 제거)
+            meals = arrayData.filter((item: any) =>
+                item &&
+                typeof item === 'object' &&
+                !Array.isArray(item) &&
+                (item.name || item.mealTime)
+            ) as Meal[]
         } catch (parseError) {
             console.error('❌ JSON 파싱 실패:', parseError)
             console.error('응답 내용:', response.content)
@@ -169,6 +205,37 @@ ${request.dietaryRestrictions?.length ? `**식이 제한**: ${request.dietaryRes
         meals.forEach((meal, index) => {
             if (!meal.id) {
                 meal.id = `${request.userId}-${Date.now()}-${index}`
+            }
+
+            // mealTime 한글 -> 영어 매핑 정규화
+            if (meal.mealTime) {
+                const timeMap: Record<string, string> = {
+                    '아침': 'breakfast',
+                    '점심': 'lunch',
+                    '저녁': 'dinner',
+                    '간식': 'snack',
+                    '간식1': 'snack',
+                    '간식2': 'snack'
+                };
+                // 이미 영어인 경우는 그대로 두고, 한글인 경우 매핑
+                if (timeMap[meal.mealTime]) {
+                    meal.mealTime = timeMap[meal.mealTime] as any;
+                }
+            }
+
+            // name 필드 안정화 (LLM이 다른 키를 사용할 경우 대비)
+            if (!meal.name) {
+                const nameCandidates = ['menu', 'title', 'dish', 'food', 'menuName', '식사명', '메뉴', '이름'];
+                for (const key of nameCandidates) {
+                    if ((meal as any)[key]) {
+                        meal.name = (meal as any)[key];
+                        break;
+                    }
+                }
+                // 여전히 없으면 기본값
+                if (!meal.name) {
+                    meal.name = 'AI 추천 식단';
+                }
             }
 
             // 필수 필드 기본값 설정
@@ -235,7 +302,10 @@ export async function modifyMealsWithChat(request: MealChatRequest): Promise<{
 2. 회복 단계에 맞는 음식으로만 대체합니다.
 3. 영양 균형을 유지합니다.
 4. 수정 이유를 친절하게 설명합니다.
-5. 모든 응답은 **한국어**로 작성합니다.
+6. **Language Rules**:
+   - **MUST** be in **Korean (Hangul)**.
+   - **NO Japanese** (Hiragana, Katakana, Kanji) allowed.
+   - Example: "Olive Oil" -> "올리브 오일" (NOT "オリーブオイル").
 
 **현재 식단**:
 ${JSON.stringify(request.currentMeals, null, 2)}

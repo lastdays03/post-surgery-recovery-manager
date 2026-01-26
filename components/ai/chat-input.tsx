@@ -1,5 +1,4 @@
-import { useState, KeyboardEvent, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState, KeyboardEvent } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 
 interface ChatInputProps {
@@ -10,7 +9,6 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
     const [input, setInput] = useState('')
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const handleSubmit = () => {
         if (!input.trim() || isLoading || disabled) return
@@ -18,40 +16,32 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
         setInput('')
     }
 
-    const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
             e.preventDefault()
             handleSubmit()
         }
     }
 
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto'
-            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
-        }
-    }, [input])
-
     return (
-        <div className="flex items-end gap-2 p-4 border-t border-gray-100 bg-white">
-            <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="궁금한 점을 물어보세요..."
-                className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[48px] max-h-[120px] overflow-y-auto placeholder:text-gray-500 leading-relaxed"
-                rows={1}
-                disabled={isLoading || disabled}
-            />
-            <Button
-                onClick={handleSubmit}
-                disabled={!input.trim() || isLoading || disabled}
-                className="rounded-xl w-12 h-12 flex items-center justify-center p-0 flex-shrink-0"
-            >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-            </Button>
+        <div className="p-4 bg-white border-t border-gray-100">
+            <div className="flex gap-2">
+                <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="궁금한 점을 물어보세요..."
+                    className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-sm"
+                    disabled={isLoading || disabled}
+                />
+                <button
+                    onClick={handleSubmit}
+                    disabled={!input.trim() || isLoading || disabled}
+                    className="bg-[#8ba4ff] hover:bg-[#7a93ee] disabled:bg-blue-200 text-white w-[48px] h-[48px] rounded-xl transition-colors flex items-center justify-center shadow-sm flex-shrink-0"
+                >
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send size={20} className="ml-0.5 mt-0.5" />}
+                </button>
+            </div>
         </div>
     )
 }

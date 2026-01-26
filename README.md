@@ -34,10 +34,34 @@
 
 ### 환경 변수 설정
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-GEMINI_API_KEY=your_gemini_api_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# AI Provider Configuration
+# Options: 'openai', 'google', 'groq', 'mock'
+AI_PROVIDER=mock
+
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL_NAME=gpt-4o
+NEXT_PUBLIC_ENABLE_AI_CHAT=true
+
+# Google Gemini
+GOOGLE_API_KEY=your_google_ai_key
+GOOGLE_MODEL_NAME=gemini-2.5-flash
+
+# Groq (초고속 추론)
+GROQ_API_KEY=gsk_your_groq_api_key_here
+GROQ_MODEL_NAME=llama-3.3-70b-versatile
+# 사용 가능한 모델: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Cost Limits
+MAX_DAILY_AI_COST_PER_USER=0.50
 ```
 
 ### 설치 및 시작
