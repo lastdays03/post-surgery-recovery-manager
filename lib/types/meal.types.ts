@@ -46,6 +46,10 @@ export interface Meal {
     prepTime: number
     /** Portion size description */
     portionSize: string
+    /** Suitable surgery types */
+    suitableFor?: string[]
+    /** Search tags (e.g., high-protein, low-fat) */
+    tags?: string[]
     /** Additional notes or warnings */
     notes?: string
 }

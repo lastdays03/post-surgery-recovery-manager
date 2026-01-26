@@ -327,5 +327,153 @@ export const SAMPLE_MEALS: Meal[] = [
         prepTime: 1,
         portionSize: '30g',
         notes: '천천히 잘 씹어서 드세요'
+    },
+    // Enhanced Meal Database (v2.0) - Specialized surgery-specific meals
+    {
+        id: 'bariatric-snack-1',
+        name: '그릭요거트 프로틴 무스',
+        phase: 'soft',
+        mealTime: 'snack',
+        suitableFor: ['gastric_resection', 'esophagectomy', 'bariatric'],
+        nutrition: {
+            calories: 180,
+            protein: 15,
+            fat: 4,
+            carbs: 8,
+            fiber: 0
+        },
+        ingredients: [
+            '무가당 그릭요거트 100g',
+            '웨이 프로틴 파우더(바닐라) 1/2스쿱',
+            '레몬즙 약간'
+        ],
+        instructions: [
+            '그릭요거트에 프로틴 파우더를 넣고 덩어리가 없을 때까지 섞는다.',
+            '너무 뻑뻑하면 물이나 저지방 우유를 1티스푼 넣는다.',
+            '아주 작은 티스푼으로 20분 이상 천천히 섭취한다.'
+        ],
+        prepTime: 3,
+        portionSize: '120g',
+        tags: ['고단백', '저당분', '덤핑예방'],
+        notes: '위절제 후 덤핑증후군 예방을 위해 설탕이 없는 제품을 사용하고, 식사 30분 후 섭취하세요.'
+    },
+    {
+        id: 'low-residue-dinner-1',
+        name: '부드러운 닭고기 장조림과 흰죽',
+        phase: 'soft',
+        mealTime: 'dinner',
+        suitableFor: ['colon_resection', 'general'],
+        nutrition: {
+            calories: 320,
+            protein: 20,
+            fat: 5,
+            carbs: 45,
+            fiber: 1
+        },
+        ingredients: [
+            '닭안심 100g',
+            '흰쌀죽 1공기',
+            '간장(저염)',
+            '메추리알 2개'
+        ],
+        instructions: [
+            '닭안심은 결대로 잘게 찢어질 때까지 푹 삶는다.',
+            '간장과 물을 1:3 비율로 섞어 닭고기와 메추리알을 넣고 조린다.',
+            '질긴 섬유질이 있는 파, 마늘 등의 건더기는 조리 후 제거한다.',
+            '흰죽과 함께 천천히 씹어 먹는다.'
+        ],
+        prepTime: 30,
+        portionSize: '1인분',
+        tags: ['저잔사식', '고단백', '소화용이'],
+        notes: '장 수술 후 장폐색 예방을 위해 깨, 고춧가루, 질긴 채소 사용을 금합니다.'
+    },
+    {
+        id: 'low-fat-lunch-1',
+        name: '대구살 무찜 (기름기 제로)',
+        phase: 'regular',
+        mealTime: 'lunch',
+        suitableFor: ['cholecystectomy', 'gastric_resection'],
+        nutrition: {
+            calories: 250,
+            protein: 22,
+            fat: 2,
+            carbs: 15,
+            fiber: 3
+        },
+        ingredients: [
+            '대구살 또는 동태살 150g',
+            '무 100g',
+            '미나리 약간 (잎 부분만)',
+            '멸치 육수'
+        ],
+        instructions: [
+            '무를 얇게 썰어 냄비 바닥에 깐다.',
+            '그 위에 흰살생선을 올리고 멸치 육수를 자작하게 붓는다.',
+            '기름을 전혀 사용하지 않고 찜 형태로 익힌다.',
+            '소화가 잘 되도록 무가 투명해질 때까지 충분히 익힌다.'
+        ],
+        prepTime: 25,
+        portionSize: '1인분',
+        tags: ['저지방', '가스제한', '속편한'],
+        notes: '담낭 절제 후 지방 소화가 어려우므로 식용유나 참기름 사용을 제한했습니다.'
+    },
+    {
+        id: 'ortho-recovery-1',
+        name: '연어 스테이크와 두부 구이',
+        phase: 'regular',
+        mealTime: 'dinner',
+        suitableFor: ['tkr', 'acl_reconstruction', 'spinal_fusion'],
+        nutrition: {
+            calories: 550,
+            protein: 35,
+            fat: 20,
+            carbs: 40,
+            fiber: 6
+        },
+        ingredients: [
+            '연어 150g',
+            '두부 1/4모',
+            '브로콜리 50g',
+            '현미밥 2/3공기',
+            '올리브오일'
+        ],
+        instructions: [
+            '연어와 두부는 물기를 제거하고 올리브오일을 발라 굽는다.',
+            '브로콜리는 살짝 데쳐서 준비한다.',
+            '수술 후 활동량이 줄어든 상태라면 밥 양을 조절한다.'
+        ],
+        prepTime: 20,
+        portionSize: '1인분',
+        tags: ['고단백', '항염식단', '오메가3', '칼슘강화'],
+        notes: '근육 손실 방지를 위한 고단백 식단이며, 연어의 오메가-3는 관절 염증 완화에 도움이 됩니다.'
+    },
+    {
+        id: 'eye-health-smoothie',
+        name: '아이 케어 당근 베리 스무디',
+        phase: 'regular',
+        mealTime: 'breakfast',
+        suitableFor: ['smile_lasik', 'general'],
+        nutrition: {
+            calories: 180,
+            protein: 5,
+            fat: 2,
+            carbs: 35,
+            fiber: 5
+        },
+        ingredients: [
+            '당근 1/2개 (비타민A)',
+            '블루베리 1/2컵 (안토시아닌)',
+            '케일 2장 (루테인)',
+            '코코넛워터 200ml'
+        ],
+        instructions: [
+            '당근은 깍둑썰기하고 케일은 씻어서 준비한다.',
+            '모든 재료를 블렌더에 넣고 곱게 간다.',
+            '수술 초기 눈에 힘이 들어가지 않도록 빨대 사용은 주의한다(압력).'
+        ],
+        prepTime: 5,
+        portionSize: '300ml',
+        tags: ['눈건강', '항산화', '비타민A'],
+        notes: '각막 회복과 안구 건조 완화에 도움을 주는 항산화 성분이 풍부합니다.'
     }
 ]

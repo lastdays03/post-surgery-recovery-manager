@@ -3,6 +3,7 @@ export interface RecoveryPhase {
     daysRange: [number, number]
     description: string
     forbiddenFoods: string[]
+    guidelines?: string[]
 }
 
 export interface RehabPhase {
@@ -19,6 +20,7 @@ export interface SurgeryProtocol {
         proteinMultiplier: number
         calorieTarget: number
         maxFatPerMeal?: number
+        supplements?: string[]
     }
     rehabPhases?: RehabPhase[]
 }
@@ -28,5 +30,11 @@ export type SurgeryType =
     | 'colon_resection'
     | 'tkr'
     | 'spinal_fusion'
+    | 'spinal_surgery'
     | 'cholecystectomy'
+    | 'tha'
+    | 'acl_reconstruction'
+    | 'esophagectomy'
+    | 'smile_lasik'
+    | 'rotator_cuff'
     | 'general'
