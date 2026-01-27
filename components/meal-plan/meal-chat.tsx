@@ -137,8 +137,8 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
                     {isLoading && (
                         <div className="flex justify-start">
                             <div className="flex items-center gap-3 bg-white p-4 rounded-2xl rounded-tl-none border shadow-sm">
-                                <Loader2 className="animate-spin text-gray-400" size={16} />
-                                <span className="text-xs text-gray-400 font-medium">AI 분석 중...</span>
+                                <Loader2 className="animate-spin text-gray-500" size={16} />
+                                <span className="text-xs text-gray-600 font-medium">AI 분석 중...</span>
                             </div>
                         </div>
                     )}
@@ -153,7 +153,7 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
                             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                             placeholder="메시지를 입력해 주세요..."
                             disabled={isLoading}
-                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-base"
+                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-500 text-gray-700 text-base"
                         />
                         <button
                             onClick={() => handleSendMessage()}
@@ -164,8 +164,8 @@ export function MealChat({ userId, currentMeals, onMealsUpdated }: MealChatProps
                         </button>
                     </div>
                     <div className="bg-white pt-4">
-                        <p className="text-[10px] text-gray-400 text-center">
-                            💡 예: "계란 빼줘" 또는 "부드러운 음식으로 변경"
+                        <p className="text-xs text-gray-500 text-center">
+                            AI 답변은 의학적 조언을 대체할 수 없습니다. 응급 상황 시 즉시 병원을 방문하세요.
                         </p>
                     </div>
                 </div>

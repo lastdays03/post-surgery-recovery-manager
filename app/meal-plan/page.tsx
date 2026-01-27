@@ -9,7 +9,7 @@ import type { Meal } from '@/lib/types/meal.types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MealChat } from '@/components/meal-plan/meal-chat'
-import { RefreshCw, MessageSquare, Loader2 } from 'lucide-react'
+import { RefreshCw, MessageSquare, Loader2, ArrowLeft } from 'lucide-react'
 import {
     getTodayMealPlan,
     saveMealPlan,
@@ -266,19 +266,27 @@ export default function MealPlanPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* 반응형 버튼 영역: 모바일 세로 스택, 태블릿 이상 가로 배치 */}
+        <div className="min-h-screen bg-gray-50 pb-10">
+            {/* Header Section */}
+            {/* Header Section */}
+            <header className="bg-white border-b sticky top-0 z-10">
+                <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <h1 className="text-xl font-bold text-gray-800">AI 맞춤 식단</h1>
+                    </div>
+                    <div className="flex gap-2">
+                        {/* Additional header actions if needed */}
+                    </div>
+                </div>
+            </header>
+
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* 반응형 버튼 영역: 모바일 세로 스택, 태블릿 이상 가로 배치 */}
                 <div className="mb-8 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 flex-wrap">
-                    <Button
-                        variant="secondary"
-                        onClick={() => router.push('/dashboard')}
-                        className="w-full sm:w-auto whitespace-nowrap"
-                    >
-                        ← 대시보드
-                    </Button>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto ml-auto">
                         <Button
                             variant="outline"
                             onClick={handleRegenerate}
