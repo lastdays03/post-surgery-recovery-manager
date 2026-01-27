@@ -128,8 +128,8 @@ export function OnboardingChat() {
                 {isLoading && (
                     <div className="flex justify-start">
                         <div className="flex items-center gap-3 bg-white p-4 rounded-2xl rounded-tl-none border shadow-sm">
-                            <Loader2 className="animate-spin text-gray-400" size={16} />
-                            <span className="text-xs text-gray-400 font-medium">AI 분석 중...</span>
+                            <Loader2 className="animate-spin text-gray-500" size={16} />
+                            <span className="text-xs text-gray-600 font-medium">AI 분석 중...</span>
                         </div>
                     </div>
                 )}
@@ -159,7 +159,7 @@ export function OnboardingChat() {
                             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                             placeholder="메시지를 입력해 주세요..."
                             disabled={isLoading}
-                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-base"
+                            className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-500 text-gray-700 text-base"
                         />
                         <button
                             onClick={handleSendMessage}

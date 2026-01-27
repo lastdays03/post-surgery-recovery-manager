@@ -5,6 +5,8 @@ export interface LocalProfile {
     digestive_capacity: 'good' | 'moderate' | 'poor'
     comorbidities: string[]
     weight?: number
+    age?: number
+    advanced_metrics?: any
     created_at: string
     updated_at: string
 }

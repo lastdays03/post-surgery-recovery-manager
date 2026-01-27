@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ArrowLeft, FileDown } from 'lucide-react'
 import { getProfile } from '@/lib/local-storage'
 import { getWeeklyLogs } from '@/lib/services/log-service'
 import { calculateWeeklyProgress } from '@/lib/utils/analytics'
 import { WeeklyReport } from '@/lib/types/report.types'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { usePdfReport } from '@/hooks/use-pdf-report'
-import { FileDown } from 'lucide-react'
 
 export default function WeeklyReportPage() {
     const router = useRouter()
@@ -53,29 +53,33 @@ export default function WeeklyReportPage() {
     if (!report) return <div className="p-8 text-center">데이터를 불러올 수 없습니다.</div>
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="container max-w-4xl mx-auto px-4 space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">주간 회복 리포트</h1>
-                    <div className="flex flex-col sm:flex-row gap-2">
+        <div className="min-h-screen bg-gray-50 pb-10">
+            {/* Header Section */}
+            {/* Header Section */}
+            <header className="bg-white border-b sticky top-0 z-10">
+                <div className="container max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <h1 className="text-xl font-bold text-gray-800">주간 회복 리포트</h1>
+                    </div>
+                    <div className="flex gap-2">
                         <Button
                             variant="outline"
+                            size="sm"
                             onClick={() => report && downloadWeeklyReport(report)}
                             disabled={isGenerating || !report}
-                            className="w-full sm:w-auto whitespace-nowrap"
+                            className="text-gray-600 border-gray-300 hover:bg-gray-50"
                         >
                             <FileDown className="w-4 h-4 mr-2" />
-                            {isGenerating ? '생성 중...' : 'PDF'}
-                        </Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => router.push('/dashboard')}
-                            className="w-full sm:w-auto whitespace-nowrap"
-                        >
-                            ← 대시보드
+                            {isGenerating ? '생성 중...' : 'PDF 저장'}
                         </Button>
                     </div>
                 </div>
+            </header>
+
+            <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
 
                 <div className="grid grid-cols-2 gap-4">
                     <Card>

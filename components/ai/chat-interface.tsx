@@ -63,7 +63,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                         <span className="font-semibold text-gray-800">AI 회복 파트너</span>
                     </div>
-                    <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                    <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
                         GPT-4o / RAG v1.0
                     </div>
                 </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
@@ -51,11 +53,24 @@ export default function SymptomCheckPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8">
-            <div className="container max-w-md mx-auto px-4">
+        <div className="min-h-screen bg-gray-50 pb-10">
+            {/* Header Section */}
+            {/* Header Section */}
+            <header className="bg-white border-b sticky top-0 z-10">
+                <div className="container max-w-md mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <h1 className="text-xl font-bold text-gray-800">컨디션 체크</h1>
+                    </div>
+                </div>
+            </header>
+
+            <div className="container max-w-md mx-auto px-4 py-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-xl text-gray-900 font-bold">오늘의 컨디션 체크</CardTitle>
+                        <CardTitle className="text-xl text-gray-900 font-bold">오늘의 컨디션 기록</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

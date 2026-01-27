@@ -31,7 +31,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="궁금한 점을 물어보세요..."
-                    className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-400 text-gray-700 text-sm"
+                    className="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-500 text-gray-700 text-sm"
                     disabled={isLoading || disabled}
                 />
                 <button

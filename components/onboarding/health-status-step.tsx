@@ -99,9 +99,10 @@ export function HealthStatusStep() {
                 saveProfile(localProfile)
             }
 
-            // 온보딩 완료 후 대시보드로 이동
-            resetOnboarding()
-            router.push('/dashboard')
+            // 온보딩 완료 후 고급 지표 입력 페이지로 이동
+            // resetOnboarding() // Store 초기화는 최종 완료 페이지나 고급 지표 페이지 진입 시 처리 고려. 
+            // 여기서는 단계 유지.
+            router.push('/onboarding/manual/advanced')
         } catch (error) {
             console.error('Onboarding submit error:', error)
             setIsSubmitting(false)
