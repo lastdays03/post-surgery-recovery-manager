@@ -83,7 +83,7 @@ Keep Korean and numbers exactly as they are.`
                 resolve(base64)
             }
             reader.onerror = reject
-            reader.readAsDataURL(file)
+            reader.readAsDataURL(file as Blob)
         })
     }
 

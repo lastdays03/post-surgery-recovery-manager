@@ -9,7 +9,7 @@ export class OCRProviderFactory {
     private providers: Map<string, OCRProvider>
 
     constructor() {
-        this.providers = new Map([
+        this.providers = new Map<string, OCRProvider>([
             ['google', new GoogleDocumentAIProvider()],
             ['tesseract', new TesseractProvider()],
             ['openai', new OpenAIVisionProvider()]
@@ -39,7 +39,7 @@ export class OCRProviderFactory {
         // Priority: Google > OpenAI > Tesseract
         const priority = ['google', 'openai', 'tesseract']
 
-        for (consttype of priority) {
+        for (const type of priority) {
             const provider = this.providers.get(type)
             if (provider && await provider.isAvailable()) {
                 return provider
