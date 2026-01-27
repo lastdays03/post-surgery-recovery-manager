@@ -8,9 +8,19 @@ export interface OnboardingChatResponse {
     error?: string
 }
 
-const ONBOARDING_SYSTEM_PROMPT = `
+const getOnboardingSystemPrompt = () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const dayOfWeek = days[now.getDay()];
+
+    return `
 당신은 수술 후 회복 관리를 위해 사용자의 정보를 수집하는 전문적인 의료 온보딩 도우미입니다.
 사용자의 수술 종류, 수술 날짜, 나이, 키, 몸무게, 평소 소화 능력, 기저질환 등을 대화로 파악해야 합니다.
+
+[현재 시각 정보]
+- 오늘은 ${today} (${dayOfWeek}요일) 입니다.
+- "어제", "오늘", "그저께" 등의 상대적인 날짜 표현은 반드시 이 날짜를 기준으로 계산하세요.
 
 [수집 목표 데이터]
 - 수술 종류 (최대한 구체적으로 파악)
@@ -54,7 +64,8 @@ const ONBOARDING_SYSTEM_PROMPT = `
     "comorbidities": ["...", "..."]
   }
 }
-`.trim()
+`.trim();
+}
 
 export async function processOnboardingChat(
     message: string,
@@ -63,7 +74,7 @@ export async function processOnboardingChat(
     const client = LLMService.getClient()
 
     const messages = [
-        { role: 'system', content: ONBOARDING_SYSTEM_PROMPT },
+        { role: 'system', content: getOnboardingSystemPrompt() },
         ...history,
         { role: 'user', content: message }
     ]
