@@ -67,6 +67,34 @@ function cleanJsonOutput(content: string): string {
     }
     return jsonContent
 }
+// ------------------------------------------------------------------
+// Helper Functions for Common Prompts
+// ------------------------------------------------------------------
+
+function getRolePrompt(): string {
+    return `<role>
+당신은 수술 후 회복 환자를 위한 전문 영양사 AI입니다.
+환자의 회복 단계와 개인 선호도를 고려하여 하루 식단(아침, 점심, 저녁, 간식 2개)을 제안하거나 수정합니다.
+</role>`
+}
+
+function getGuidelinesPrompt(phase: string, guidelines: any): string {
+    return `<clinical_guidelines>
+- 현재 회복 단계: ${phase} (${guidelines.description})
+- 허용 음식: ${guidelines.allowed.join(', ')}
+- 금기 음식: ${guidelines.forbidden.join(', ')}
+- 음식 질감: ${guidelines.texture}
+- 주의사항: ${guidelines.notes}
+</clinical_guidelines>`
+}
+
+function getLanguageRulesPrompt(): string {
+    return `<language_rules>
+1. **Primary Language**: All values and descriptions MUST be in **Korean (Hangul)**.
+2. **Forbidden**: Do NOT use Japanese (Hiragana, Katakana, Kanji) or Chinese characters.
+3. **Consistency**: Even if the input contains other languages, translate and output in Korean.
+</language_rules>`
+}
 
 /**
  * LLM을 사용하여 개인 맞춤형 식단 생성
@@ -76,34 +104,22 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
     const guidelines = RECOVERY_PHASE_GUIDELINES[request.recoveryPhase]
 
     // 프롬프트 구성
+    // 프롬프트 구성
     const systemPrompt = `
-<role>
-당신은 수술 후 회복 환자를 위한 전문 영양사 AI입니다.
-환자의 회복 단계와 개인 선호도를 고려하여 하루 식단(아침, 점심, 저녁, 간식 2개)을 제안합니다.
-</role>
+${getRolePrompt()}
 
-<clinical_guidelines>
-- 현재 회복 단계: ${request.recoveryPhase} (${guidelines.description})
-- 허용 음식: ${guidelines.allowed.join(', ')}
-- 금기 음식: ${guidelines.forbidden.join(', ')}
-- 음식 질감: ${guidelines.texture}
-- 주의사항: ${guidelines.notes}
-</clinical_guidelines>
+${getGuidelinesPrompt(request.recoveryPhase, guidelines)}
 
 <instructions>
-1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH**. (e.g., "name", "mealTime", "ingredients"). NOT Korean.
-2. **Value Language**: properties values MUST be in **Korean**. (e.g., "name": "계란죽").
+1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH** (e.g., "name", "mealTime", "ingredients"). NOT Korean.
+2. **Value Language**: properties values MUST be in **Korean** (e.g., "name": "계란죽").
 3. **Format**: Return ONLY a pure JSON Object wrapped in "meals" key. NO markdown code blocks. NO surrounding text.
 4. **Safety**: Do not use forbidden ingredients.
 5. **Menu**: Ensure meals are realistic and easy to prepare.
-6. **Conciseness**: Keep instructions and notes brief to ensure valid JSON output within token limits.
+6. **Conciseness**: Keep instructions and notes brief to ensure valid JSON output.
 </instructions>
 
-<language_rules>
-1. **Primary Language**: All values and descriptions MUST be in **Korean (Hangul)**.
-2. **Forbidden**: Do NOT use Japanese (Hiragana, Katakana, Kanji) or Chinese characters.
-3. **Consistency**: Even if the input contains other languages, translate and output in Korean.
-</language_rules>
+${getLanguageRulesPrompt()}
 
 <output_format>
 Must be a valid JSON Object with a single key "meals" containing the array.
@@ -309,33 +325,58 @@ Use English Keys for JSON structure.
 /**
  * 대화를 통한 식단 수정
  */
-export async function modifyMealsWithChat(request: MealChatRequest): Promise<{
+export async function modifyMealsWithChat(
+    request: MealChatRequest
+): Promise<{
     updatedMeals: Meal[]
     reply: string
 }> {
     const llm = LLMService.getClient()
 
-    const systemPrompt = `당신은 수술 후 회복 환자의 식단을 관리하는 AI 영양사입니다.
-환자의 요청에 따라 현재 식단을 수정합니다.
+    // 복구 단계 찾기 (현재 식단 중 하나에서 유추하거나, 요청에 포함되어 있다면 좋겠지만 여기선 기본 로직 사용)
+    // request.currentMeals의 첫 번째 항목에서 phase를 가져오거나 없으면 기본값 liquid로 가정 (안전을 위해)
+    // 하지만 generateDailyMeals에서 meal.phase가 저장되므로 그것을 참조
+    const recoveryPhase = request.currentMeals[0]?.phase || 'liquid'
+    // @ts-ignore - dynamic access to guidelines based on string key that usually matches
+    const guidelines = RECOVERY_PHASE_GUIDELINES[recoveryPhase] || RECOVERY_PHASE_GUIDELINES['liquid']
 
-**수정 규칙**:
-1. 환자의 요청을 정확히 이해하고 반영합니다.
-2. 회복 단계에 맞는 음식으로만 대체합니다.
-3. 영양 균형을 유지합니다.
-4. 수정 이유를 친절하게 설명합니다.
-6. **Language Rules**:
-   - **MUST** be in **Korean (Hangul)**.
-   - **NO Japanese** (Hiragana, Katakana, Kanji) allowed.
-   - Example: "Olive Oil" -> "올리브 오일" (NOT "オリーブオイル").
+    const systemPrompt = `
+${getRolePrompt()}
 
-**현재 식단**:
+<context>
+환자의 요청에 따라 현재 식단을 수정하거나 질문에 답변합니다.
+환자는 현재 "${recoveryPhase}" 회복 단계입니다.
+</context>
+
+${getGuidelinesPrompt(recoveryPhase, guidelines)}
+
+<instructions>
+1. Analyze the user's request: "${request.message}".
+2. If the user wants to change a meal:
+   - Update the "meals" array significantly if needed.
+   - Ensure specific diet preferences (e.g. "no fish") are respected.
+   - Keep the nutritional balance suitable for their recovery phase.
+3. If the user just asks a question:
+   - You may keep "updatedMeals" same as input or empty if no change needed (but better to return current).
+   - Provide a helpful "reply".
+4. "reply" should be polite, professionally encouraging, and explain the change/answer.
+</instructions>
+
+${getLanguageRulesPrompt()}
+
+<current_meals>
 ${JSON.stringify(request.currentMeals, null, 2)}
+</current_meals>
 
-응답은 다음 JSON 형식을 따라야 합니다:
+<output_format>
+Must be a valid JSON Object with this schema:
 {
-  "updatedMeals": [...수정된 식단 배열...],
-  "reply": "수정 내용에 대한 설명"
-}`
+  "updatedMeals": [ ... array of Meal objects ... ],
+  "reply": "String message to the user"
+}
+IMPORTANT: Return ONLY JSON. No markdown fencing.
+</output_format>
+`
 
     const conversationMessages = [
         { role: 'system' as const, content: systemPrompt },
@@ -348,15 +389,37 @@ ${JSON.stringify(request.currentMeals, null, 2)}
             messages: conversationMessages,
             temperature: 0.7,
             maxTokens: 2048,
-            jsonMode: true
+            jsonMode: true,
+            responseFormat: { type: 'json_object' }
         })
 
         // JSON 파싱 전처리 (Markdown 제거)
         const jsonContent = cleanJsonOutput(response.content)
-        const result = JSON.parse(jsonContent)
+
+        let result: any
+        try {
+            result = JSON.parse(jsonContent)
+        } catch (initialError) {
+            // If simple parse fails, try to wrap if it looks like content
+            if (jsonContent.trim().startsWith('{')) {
+                throw initialError;
+            }
+            // Fallback attempt
+            try {
+                // If LLM returned raw content without brackets (unlikely with json_object but possible)
+                // or if it failed mid-stream? Unlikely with json_object. 
+                // Just try standard fix just in case
+                const wrappedContent = `{ "updatedMeals": [], "reply": "오류가 발생했습니다." }`;
+                // This is not a real fix for syntax error, but let's assume valid JSON structure was intended.
+                // Retrowing implies we handle it in catch block below.
+                throw initialError;
+            } catch {
+                throw initialError;
+            }
+        }
 
         return {
-            updatedMeals: result.updatedMeals || request.currentMeals,
+            updatedMeals: Array.isArray(result.updatedMeals) ? result.updatedMeals : request.currentMeals,
             reply: result.reply || '식단을 수정했습니다.'
         }
     } catch (error) {

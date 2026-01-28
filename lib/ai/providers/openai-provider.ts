@@ -20,7 +20,7 @@ export class OpenAIProvider implements LLMClient {
         }))
 
         // Reasoning models (e.g. o1, gpt-5-nano) do not support custom temperature
-        const REASONING_MODELS = ['o1', 'o3', 'gpt-5-nano', 'gpt-5.2'];
+        const REASONING_MODELS = ['o1', 'o3', 'gpt-5-nano', 'gpt-5.2', 'gpt-5-mini'];
         const isReasoningModel = REASONING_MODELS.some(m => this.model.includes(m));
 
         let response_format: any = undefined;
@@ -54,6 +54,8 @@ export class OpenAIProvider implements LLMClient {
             baseParams.max_tokens = request.maxTokens
             baseParams.temperature = request.temperature
         }
+
+        console.log(`📡 [LLM] Using Model: ${this.model}`)
 
         const response = await this.client.chat.completions.create(baseParams)
 
