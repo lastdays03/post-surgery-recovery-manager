@@ -20,22 +20,42 @@ export class OpenAIProvider implements LLMClient {
         }))
 
         // Reasoning models (e.g. o1, gpt-5-nano) do not support custom temperature
-        const REASONING_MODELS = ['gpt-5-nano', 'o1-preview', 'o1-mini', 'o3-mini'];
+        const REASONING_MODELS = ['o1', 'o3', 'gpt-5-nano', 'gpt-5.2', 'gpt-5-mini'];
         const isReasoningModel = REASONING_MODELS.some(m => this.model.includes(m));
+
+        let response_format: any = undefined;
+        if (request.responseFormat) {
+            if (request.responseFormat.type === 'json_schema') {
+                response_format = {
+                    type: 'json_schema',
+                    json_schema: {
+                        name: request.responseFormat.name || 'response',
+                        strict: request.responseFormat.strict ?? false,
+                        schema: request.responseFormat.schema
+                    }
+                }
+            } else {
+                response_format = { type: request.responseFormat.type }
+            }
+        } else if (request.jsonMode) {
+            response_format = { type: 'json_object' }
+        }
 
         const baseParams: any = {
             model: this.model,
             messages,
-            max_tokens: request.maxTokens,
             tools: request.tools as any,
-            response_format: request.jsonMode ? { type: 'json_object' } : undefined
+            response_format
         }
 
-        // Only add temperature if it's NOT a reasoning model
-        // reasoning models compel fixed temperature (usually 1)
-        if (!isReasoningModel) {
+        if (isReasoningModel) {
+            baseParams.max_completion_tokens = request.maxTokens
+        } else {
+            baseParams.max_tokens = request.maxTokens
             baseParams.temperature = request.temperature
         }
+
+        console.log(`📡 [LLM] Using Model: ${this.model}`)
 
         const response = await this.client.chat.completions.create(baseParams)
 

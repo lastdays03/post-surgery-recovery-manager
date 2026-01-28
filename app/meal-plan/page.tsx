@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getProfile } from '@/lib/local-storage'
 import { calculateRecoveryPhase } from '@/lib/profiling-engine'
@@ -32,8 +32,13 @@ export default function MealPlanPage() {
     const [currentPhaseName, setCurrentPhaseName] = useState('')
     const [recoveryPhase, setRecoveryPhase] = useState<'liquid' | 'soft' | 'regular'>('soft')
 
+    const initializedRef = useRef(false)
+
     useEffect(() => {
-        loadProfileAndGenerateMeals()
+        if (!initializedRef.current) {
+            initializedRef.current = true
+            loadProfileAndGenerateMeals()
+        }
     }, [])
 
     const loadProfileAndGenerateMeals = async () => {
@@ -63,10 +68,6 @@ export default function MealPlanPage() {
             if (currentPhase.name === 'liquid') mealPhase = 'liquid'
             else if (currentPhase.name === 'normal') mealPhase = 'regular'
             else mealPhase = 'soft'
-
-            setRecoveryPhase(mealPhase)
-
-            setRecoveryPhase(mealPhase)
 
             setRecoveryPhase(mealPhase)
 
