@@ -93,9 +93,10 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
 <instructions>
 1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH**. (e.g., "name", "mealTime", "ingredients"). NOT Korean.
 2. **Value Language**: properties values MUST be in **Korean**. (e.g., "name": "계란죽").
-3. **Format**: Return ONLY a pure JSON ID Array. Do NOT wrap it in a root object like {"data": ...}.
+3. **Format**: Return ONLY a pure JSON Object wrapped in "meals" key. NO markdown code blocks. NO surrounding text.
 4. **Safety**: Do not use forbidden ingredients.
 5. **Menu**: Ensure meals are realistic and easy to prepare.
+6. **Conciseness**: Keep instructions and notes brief to ensure valid JSON output within token limits.
 </instructions>
 
 <language_rules>
@@ -105,28 +106,30 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
 </language_rules>
 
 <output_format>
-Must be a valid JSON Array starting with '[' and ending with ']'.
+Must be a valid JSON Object with a single key "meals" containing the array.
 
 Example:
-[
-  {
-    "id": "generated-id-1",
-    "name": "소고기 야채죽",
-    "mealTime": "breakfast",
-    "phase": "${request.recoveryPhase}",
-    "ingredients": ["다진 소고기", "당근", "쌀"],
-    "instructions": ["쌀을 불린다", "소고기를 볶는다", "물 넣고 끓인다"],
-    "prepTime": 20,
-    "portionSize": "1그릇",
-    "nutrition": {
-      "calories": 300,
-      "protein": 15,
-      "carbs": 40,
-      "fat": 5
-    },
-    "notes": "따뜻하게 드세요."
-  }
-]
+{
+  "meals": [
+    {
+      "id": "generated-id-1",
+      "name": "소고기 야채죽",
+      "mealTime": "breakfast",
+      "phase": "${request.recoveryPhase}",
+      "ingredients": ["다진 소고기", "당근", "쌀"],
+      "instructions": ["쌀을 불린다", "소고기를 볶는다", "물 넣고 끓인다"],
+      "prepTime": 20,
+      "portionSize": "1그릇",
+      "nutrition": {
+        "calories": 300,
+        "protein": 15,
+        "carbs": 40,
+        "fat": 5
+      },
+      "notes": "따뜻하게 드세요."
+    }
+  ]
+}
 </output_format>
 `
 
@@ -137,7 +140,7 @@ Example:
 ${request.preferences?.favoriteFood?.length ? `- 선호 음식: ${request.preferences.favoriteFood.join(', ')}\n` : ''}${request.preferences?.avoidIngredients?.length ? `- 기피 재료: ${request.preferences.avoidIngredients.join(', ')}\n` : ''}${request.preferences?.availableIngredients?.length ? `- 보유 식재료: ${request.preferences.availableIngredients.join(', ')}\n` : ''}${request.dietaryRestrictions?.length ? `- 식이 제한: ${request.dietaryRestrictions.join(', ')}\n` : ''}
 </patient_info>
 
-Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) as a strict JSON Array.
+Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) wrapped in a "meals" key.
 Use English Keys for JSON structure.
 `
 
@@ -148,8 +151,9 @@ Use English Keys for JSON structure.
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.7,
-            maxTokens: 2048,
-            jsonMode: true
+            maxTokens: 4096,
+            jsonMode: true,
+            responseFormat: { type: 'json_object' }
         })
 
         // 🔍 디버깅: 실제 응답 로깅
@@ -160,30 +164,42 @@ Use English Keys for JSON structure.
         try {
             const jsonContent = cleanJsonOutput(response.content)
 
-            const parsed = JSON.parse(jsonContent)
+            let parsed: any;
+            try {
+                parsed = JSON.parse(jsonContent)
+            } catch (initialError) {
+                // If simple parse fails, try to wrap if it looks like content
+                if (jsonContent.trim().startsWith('{')) {
+                    throw initialError;
+                }
+                // Fallback attempt (unlikely necessary with json_object mode but safe to keep)
+                try {
+                    const wrappedContent = `{ "meals": ${jsonContent} }`;
+                    parsed = JSON.parse(wrappedContent);
+                } catch {
+                    throw initialError;
+                }
+            }
+
             let arrayData: any[] = []
 
-            if (Array.isArray(parsed)) {
-                // 중첩 배열 처리
-                arrayData = parsed.flat(Infinity);
-            } else if (typeof parsed === 'object' && parsed !== null) {
-                // 래퍼 객체 처리
-                // 1. 알려진 키 확인
-                const potentialKeys = ['meals', 'data', 'recommendations', '식사 정보', 'plans', 'schedule'];
-                let foundArray = false;
-
+            if (parsed.meals && Array.isArray(parsed.meals)) {
+                arrayData = parsed.meals;
+            } else if (Array.isArray(parsed)) {
+                // Fallback if LLM returning array directly despite instructions
+                arrayData = parsed;
+            } else {
+                // Try to find any array property
+                const potentialKeys = ['data', 'recommendations', 'plans', 'schedule'];
                 for (const key of potentialKeys) {
-                    if (Array.isArray((parsed as any)[key])) {
-                        arrayData = (parsed as any)[key];
-                        foundArray = true;
+                    if (Array.isArray(parsed[key])) {
+                        arrayData = parsed[key];
                         break;
                     }
                 }
-
-                // 2. 키가 없다면 모든 값을 평탄화하여 배열 추출 시도
-                if (!foundArray) {
-                    console.warn('⚠️ LLM이 알 수 없는 객체 형식으로 반환했습니다. 값 평탄화를 시도합니다.');
-                    arrayData = Object.values(parsed).flat(Infinity);
+                if (arrayData.length === 0) {
+                    // Last resort: invalid structure
+                    console.warn('⚠️ Could not find "meals" array in response. Structure:', parsed);
                 }
             }
 
