@@ -54,13 +54,27 @@ const RECOVERY_PHASE_GUIDELINES = {
 }
 
 /**
+ * LLM 응답에서 JSON 문자열만 추출 (마크다운 코드 블록 제거)
+ */
+function cleanJsonOutput(content: string): string {
+    let jsonContent = content.trim()
+    // ```json ... ``` or ``` ... ``` cleanup
+    if (jsonContent.startsWith('```')) {
+        const match = jsonContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+        if (match) {
+            jsonContent = match[1].trim()
+        }
+    }
+    return jsonContent
+}
+
+/**
  * LLM을 사용하여 개인 맞춤형 식단 생성
  */
 export async function generateDailyMeals(request: MealGenerationRequest): Promise<Meal[]> {
     const llm = LLMService.getClient()
     const guidelines = RECOVERY_PHASE_GUIDELINES[request.recoveryPhase]
 
-    // 프롬프트 구성
     // 프롬프트 구성
     const systemPrompt = `
 <role>
@@ -144,16 +158,7 @@ Use English Keys for JSON structure.
         // JSON 파싱 시도
         let meals: Meal[]
         try {
-            // 응답이 마크다운 코드 블록으로 감싸져 있을 수 있음
-            let jsonContent = response.content.trim()
-
-            // ```json ... ``` 형식 제거
-            if (jsonContent.startsWith('```')) {
-                const match = jsonContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-                if (match) {
-                    jsonContent = match[1].trim()
-                }
-            }
+            const jsonContent = cleanJsonOutput(response.content)
 
             const parsed = JSON.parse(jsonContent)
             let arrayData: any[] = []
@@ -330,14 +335,19 @@ ${JSON.stringify(request.currentMeals, null, 2)}
             jsonMode: true
         })
 
-        const result = JSON.parse(response.content)
+        // JSON 파싱 전처리 (Markdown 제거)
+        const jsonContent = cleanJsonOutput(response.content)
+        const result = JSON.parse(jsonContent)
 
         return {
             updatedMeals: result.updatedMeals || request.currentMeals,
             reply: result.reply || '식단을 수정했습니다.'
         }
     } catch (error) {
-        console.error('식단 수정 오류:', error)
+        console.error('❌ 식단 수정 오류:', error)
+        if (error instanceof Error) {
+            throw new Error(`식단 수정 실패 (JSON 파싱 등): ${error.message}`)
+        }
         throw new Error('식단 수정에 실패했습니다. 다시 시도해주세요.')
     }
 }
