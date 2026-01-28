@@ -1,62 +1,70 @@
 "use client"
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useDocumentOnboardingStore } from '@/lib/stores/document-onboarding-store'
 import { AdvancedMetricsForm, type AdvancedMetricsFormData } from '@/components/onboarding/advanced-metrics-form'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import { getProfile } from '@/lib/local-storage'
 
 export default function DocumentAdvancedPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const isFromDashboard = searchParams.get('from') === 'dashboard'
     const { extractedData, reviewedData, setAdvancedEnabled, reset } = useDocumentOnboardingStore()
+    const [localProfile, setLocalProfile] = useState<any>(null)
 
     useEffect(() => {
-        // If no data, redirect to start
-        if (!extractedData) {
+        const profile = getProfile()
+        setLocalProfile(profile)
+
+        // If no data and not from dashboard, redirect to start
+        if (!extractedData && !profile && !isFromDashboard) {
             router.replace('/onboarding')
         }
-    }, [extractedData, router])
+    }, [extractedData, router, isFromDashboard])
 
-    if (!extractedData) return null
+    if (!extractedData && !localProfile && !isFromDashboard) return null
 
     // 추출된 고급 데이터를 기본값으로 사용
     // Note: extractedData has { value, confidence } structure. 
     // reviewedData might have updated values. Prefer reviewedData if available.
-    const sourceData = reviewedData?.advanced || extractedData.advanced
+    // If coming from dashboard, use existing profile data.
+    const sourceData = reviewedData?.advanced || extractedData?.advanced
+    const existingMetrics = localProfile?.advanced_metrics
 
     const defaultValues: Partial<AdvancedMetricsFormData> = {
-        nrs_2002_score: sourceData.nrs_2002_score.value ?? undefined,
-        serum_albumin: sourceData.serum_albumin.value ?? undefined,
-        weight_change_6m: sourceData.weight_change_6m.value ?? undefined,
-        sga_grade: sourceData.sga_grade.value ?? undefined,
-        has_sarcopenia: sourceData.has_sarcopenia.value ?? undefined,
-        has_gerd: sourceData.has_gerd.value ?? undefined,
-        gastric_emptying_delayed: sourceData.gastric_emptying_delayed.value ?? undefined,
-        oral_intake_possible: sourceData.oral_intake_possible.value ?? undefined,
-        expected_fasting_days: sourceData.expected_fasting_days.value ?? undefined,
-        intake_rate: sourceData.intake_rate.value ?? undefined
+        nrs_2002_score: sourceData?.nrs_2002_score.value ?? existingMetrics?.nrs_2002_score ?? undefined,
+        serum_albumin: sourceData?.serum_albumin.value ?? existingMetrics?.serum_albumin ?? undefined,
+        weight_change_6m: sourceData?.weight_change_6m.value ?? existingMetrics?.weight_change_6m ?? undefined,
+        sga_grade: sourceData?.sga_grade.value ?? existingMetrics?.sga_grade ?? undefined,
+        has_sarcopenia: sourceData?.has_sarcopenia.value ?? existingMetrics?.has_sarcopenia ?? undefined,
+        has_gerd: sourceData?.has_gerd.value ?? existingMetrics?.has_gerd ?? undefined,
+        gastric_emptying_delayed: sourceData?.gastric_emptying_delayed.value ?? existingMetrics?.gastric_emptying_delayed ?? undefined,
+        oral_intake_possible: sourceData?.oral_intake_possible.value ?? existingMetrics?.oral_intake_possible ?? undefined,
+        expected_fasting_days: sourceData?.expected_fasting_days.value ?? existingMetrics?.expected_fasting_days ?? undefined,
+        intake_rate: sourceData?.intake_rate.value ?? existingMetrics?.intake_rate ?? undefined
     }
 
     const handleSubmit = async (data: AdvancedMetricsFormData) => {
-        if (!extractedData) return
-
         // 기본 데이터와 고급 데이터를 합쳐서 프로필 생성
-        // reviewedData가 있으면 그것을, 없으면 extractedData 사용
-        const basicData = reviewedData?.basic || extractedData.basic
+        // reviewedData가 있으면 그것을, 없으면 extractedData 사용. 
+        // 대시보드에서 왔다면 기존 로컬 프로필 정보를 기반으로 업데이트
+        const basicData = reviewedData?.basic || extractedData?.basic
 
         try {
             const { createProfile } = await import('@/lib/actions/profile-actions')
             const { saveProfile } = await import('@/lib/local-storage')
 
             const result = await createProfile({
-                surgery_type: basicData.surgery_type.value || 'gastric_resection', // Fallback
-                surgery_date: basicData.surgery_date.value || new Date().toISOString(),
-                age: basicData.age.value ?? undefined,
-                weight: basicData.weight.value ?? undefined,
-                height: basicData.height.value ?? undefined,
-                digestive_capacity: basicData.digestive_capacity.value as any || 'moderate',
-                comorbidities: [], // 추출된 데이터에 기저질환이 없다면 빈 배열
+                surgery_type: basicData?.surgery_type.value || localProfile?.surgery_type || 'gastric_resection',
+                surgery_date: basicData?.surgery_date.value || localProfile?.surgery_date || new Date().toISOString(),
+                age: basicData?.age.value ?? localProfile?.age ?? undefined,
+                weight: basicData?.weight.value ?? localProfile?.weight ?? undefined,
+                height: basicData?.height.value ?? localProfile?.height ?? undefined,
+                digestive_capacity: (basicData?.digestive_capacity.value as any) || localProfile?.digestive_capacity || 'moderate',
+                comorbidities: localProfile?.comorbidities || [],
                 advanced_metrics: data
             })
 
@@ -77,7 +85,11 @@ export default function DocumentAdvancedPage() {
                 } as any)
             }
 
-            router.push('/onboarding/complete')
+            if (isFromDashboard) {
+                router.push('/dashboard')
+            } else {
+                router.push('/onboarding/complete')
+            }
         } catch (e) {
             console.error('Submit error:', e)
         }
@@ -85,10 +97,11 @@ export default function DocumentAdvancedPage() {
 
     const handleSkip = async () => {
         setAdvancedEnabled(false)
-        // TODO: Task 20에서 저장 로직 구현
-        // router.push('/dashboard') 
-        // Changing to complete for consistency with current flow
-        router.push('/onboarding/complete')
+        if (isFromDashboard) {
+            router.push('/dashboard')
+        } else {
+            router.push('/onboarding/complete')
+        }
     }
 
     return (

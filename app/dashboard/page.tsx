@@ -18,6 +18,7 @@ export default function DashboardPage() {
     const [currentPhase, setCurrentPhase] = useState<any>(null)
     const [adviceList, setAdviceList] = useState<PersonalizedAdvice[]>([])
     const [progressValue, setProgressValue] = useState(0)
+    const [hasAdvancedMetrics, setHasAdvancedMetrics] = useState(true)
 
     useEffect(() => {
         const savedProfile = getProfile()
@@ -51,18 +52,17 @@ export default function DashboardPage() {
             const advices = getPersonalizedAdvice(userProfile)
             setAdviceList(advices)
 
+            // 고급 지표 유무 확인 (필드 하나라도 있으면 있는 것으로 간주)
+            const metrics = userProfile.advanced_metrics
+            const hasMetrics = !!(metrics && Object.values(metrics).some(v => v !== undefined && v !== null && v !== ''))
+            setHasAdvancedMetrics(hasMetrics)
+
         } catch (e) {
             console.error(e)
         }
 
     }, [router])
 
-    const handleReset = () => {
-        if (confirm('모든 데이터를 초기화하고 처음으로 돌아가시겠습니까?')) {
-            clearProfile()
-            router.push('/')
-        }
-    }
 
     if (!profile || !currentPhase) return null
 
@@ -89,11 +89,17 @@ export default function DashboardPage() {
                         </p>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
+                        {!hasAdvancedMetrics && (
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push('/onboarding/document/advanced?from=dashboard')}
+                                className="flex-1 sm:flex-none text-blue-600 border-blue-200 hover:bg-blue-50 whitespace-nowrap"
+                            >
+                                자세한 의료 정보 입력
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => router.push('/dashboard/profile')} className="flex-1 sm:flex-none text-gray-600 border-gray-300 hover:bg-gray-50 whitespace-nowrap">
                             <Settings size={16} className="mr-2" /> 내 정보 수정
-                        </Button>
-                        <Button variant="ghost" onClick={handleReset} className="flex-1 sm:flex-none text-gray-500 hover:text-red-600 hover:bg-red-50 whitespace-nowrap">
-                            초기화
                         </Button>
                     </div>
                 </div>

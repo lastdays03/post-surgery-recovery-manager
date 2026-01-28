@@ -5,6 +5,8 @@ import { useOnboardingStore } from '@/lib/stores/onboarding-store'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Send, User, Bot, Loader2, CheckCircle2 } from 'lucide-react'
+import { Calendar } from '@/components/ui/calendar'
+import { format } from 'date-fns'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -12,7 +14,7 @@ interface Message {
 }
 
 export function OnboardingChat() {
-    const { updateFormData, setStep } = useOnboardingStore()
+    const { updateFormData, setStep, confirmationStatus, setConfirmationStatus, setIsDatePickerOpen } = useOnboardingStore()
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
@@ -22,6 +24,9 @@ export function OnboardingChat() {
     const [inputValue, setInputValue] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isComplete, setIsComplete] = useState(false)
+    const [tempSurgeryType, setTempSurgeryType] = useState<string | null>(null)
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+
     const chatEndRef = useRef<HTMLDivElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -31,22 +36,22 @@ export function OnboardingChat() {
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages])
+    }, [messages, confirmationStatus])
 
     useEffect(() => {
-        if (!isLoading && !isComplete) {
+        if (!isLoading && !isComplete && confirmationStatus === 'idle') {
             setTimeout(() => {
                 inputRef.current?.focus()
             }, 10)
         }
-    }, [isLoading, isComplete])
+    }, [isLoading, isComplete, confirmationStatus])
 
-    const handleSendMessage = async () => {
-        if (!inputValue.trim() || isLoading) return
+    const handleSendMessage = async (manualMessage?: string) => {
+        const messageToSend = manualMessage || inputValue.trim()
+        if (!messageToSend || isLoading) return
 
-        const userMessage = inputValue.trim()
-        setInputValue('')
-        setMessages((prev) => [...prev, { role: 'user', content: userMessage }])
+        if (!manualMessage) setInputValue('')
+        setMessages((prev) => [...prev, { role: 'user', content: messageToSend }])
         setIsLoading(true)
 
         try {
@@ -54,7 +59,7 @@ export function OnboardingChat() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    message: userMessage,
+                    message: messageToSend,
                     history: messages.map((m) => ({ role: m.role, content: m.content }))
                 })
             })
@@ -67,15 +72,31 @@ export function OnboardingChat() {
                     { role: 'assistant', content: '죄송합니다. 처리 중 오류가 발생했습니다. 다시 시도해 주세요.' }
                 ])
             } else {
-                setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
+                // 데이터 추출 및 확인 로직
+                let shouldAddAiMessage = true
 
-                // 데이터 업데이트
                 if (data.extractedData) {
-                    updateFormData(data.extractedData)
+                    // 수술명이 추출되었고, 아직 확인되지 않은 상태라면 확인 모드로 진입
+                    if (data.extractedData.surgery_type && confirmationStatus === 'idle') {
+                        setTempSurgeryType(data.extractedData.surgery_type)
+                        setConfirmationStatus('pending_confirmation')
+                    }
+
+                    // 이미 확인된 상태에서 날짜가 추출되었다면 업데이트 및 완료 처리
+                    // 이때 AI의 마지막 응답("다음 단계를 안내합니다" 등)은 표시하지 않음
+                    if (confirmationStatus === 'confirmed' && data.extractedData.surgery_date) {
+                        updateFormData({ surgery_date: data.extractedData.surgery_date })
+                        setIsComplete(true)
+                        shouldAddAiMessage = false // 마지막 응답 차단
+                    }
                 }
 
-                // 완료 확인
-                if (data.isComplete) {
+                if (shouldAddAiMessage) {
+                    setMessages((prev) => [...prev, { role: 'assistant', content: data.message }])
+                }
+
+                // AI가 직접 완료 상태를 보내온 경우 (백엔드 로직에 따라)
+                if (data.isComplete && confirmationStatus === 'confirmed') {
                     setIsComplete(true)
                 }
             }
@@ -89,9 +110,27 @@ export function OnboardingChat() {
         }
     }
 
+    const handleConfirmSurgery = (confirmed: boolean) => {
+        setConfirmationStatus(confirmed ? 'confirmed' : 'idle')
+        if (confirmed) {
+            // "네, 맞아요" 자동 전송 -> AI에게 "네"라고 답변하여 날짜 질문 유도
+            updateFormData({ surgery_type: tempSurgeryType! })
+            handleSendMessage("네, 맞아요")
+        } else {
+            handleSendMessage("아니요, 틀렸습니다. 다시 입력할게요.")
+            setTempSurgeryType(null)
+        }
+    }
+
+    const handleDateSelect = (date: string) => {
+        updateFormData({ surgery_date: date })
+        // 사용자 메시지만 기록에 추가하고 AI API는 호출하지 않음
+        setMessages((prev) => [...prev, { role: 'user', content: `${date}에 수술 받았습니다.` }])
+        setIsComplete(true)
+    }
+
     const handleFinalize = () => {
-        // 모든 정보 수집 완료 후 다음 단계(대시보드 또는 추가 입력)로 이동
-        setStep(2) // 기존 순서대로라면 다음은 개인정보 입력
+        setStep(2)
     }
 
     return (
@@ -134,6 +173,53 @@ export function OnboardingChat() {
                         </div>
                     </div>
                 ))}
+
+                {/* Confirmation UI */}
+                {confirmationStatus === 'pending_confirmation' && !isLoading && (
+                    <div className="flex justify-center gap-4 py-4 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-white p-4 rounded-xl shadow-md border text-center space-y-3">
+                            <p className="font-medium text-gray-800">"{tempSurgeryType}"이(가) 맞나요?</p>
+                            <div className="flex gap-2 justify-center">
+                                <Button size="sm" onClick={() => handleConfirmSurgery(true)} className="bg-blue-600 hover:bg-blue-700">
+                                    네, 맞아요
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => handleConfirmSurgery(false)}>
+                                    아니요
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Date Picker UI */}
+                {confirmationStatus === 'confirmed' && !isComplete && !isLoading && messages[messages.length - 1].role === 'assistant' && (
+                    <div className="flex justify-center p-4 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-white p-4 rounded-xl shadow-md border w-full max-w-sm flex flex-col items-center gap-4">
+                            <label className="block text-sm font-medium text-gray-700">수술일자 선택</label>
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={setSelectedDate}
+                                disabled={(date) => date > new Date()}
+                                className="rounded-md border"
+                            />
+                            {selectedDate && (
+                                <div className="w-full flex flex-col gap-2">
+                                    <p className="text-center text-sm font-medium text-blue-600">
+                                        선택된 날짜: {format(selectedDate, 'yyyy-MM-dd')}
+                                    </p>
+                                    <Button
+                                        onClick={() => handleDateSelect(format(selectedDate, 'yyyy-MM-dd'))}
+                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        선택 완료
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {isLoading && (
                     <div className="flex justify-start">
                         <div className="flex items-center gap-3 bg-white p-4 rounded-2xl rounded-tl-none border shadow-sm">
@@ -142,16 +228,14 @@ export function OnboardingChat() {
                         </div>
                     </div>
                 )}
+
                 {isComplete && (
                     <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-2xl border border-green-200 mt-4 animate-in fade-in zoom-in duration-300">
                         <CheckCircle2 size={48} className="text-green-500 mb-3" />
                         <h4 className="text-lg font-bold text-green-800 mb-1">정보 수집 완료!</h4>
-                        <p className="text-sm text-green-600 text-center mb-4">
-                            회복에 필요한 모든 기본 정보가 수집되었습니다.<br />
-                            이제 대시보드에서 맞춤형 관리를 시작해보세요.
-                        </p>
+                        <div className="mb-4" />
                         <Button onClick={handleFinalize} className="bg-green-600 hover:bg-green-700">
-                            시작하기
+                            다음 단계로 이동
                         </Button>
                     </div>
                 )}
@@ -159,7 +243,7 @@ export function OnboardingChat() {
             </div>
 
             {/* Input Area */}
-            {!isComplete && (
+            {confirmationStatus === 'idle' && !isComplete && (
                 <div className="p-6 bg-white border-t">
                     <div className="flex gap-3">
                         <input
@@ -172,16 +256,14 @@ export function OnboardingChat() {
                             className="flex-1 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 placeholder:text-gray-500 text-gray-700 text-base"
                         />
                         <button
-                            onClick={handleSendMessage}
+                            onClick={() => handleSendMessage()}
                             disabled={isLoading || !inputValue.trim()}
+                            aria-label="보내기"
                             className="bg-[#8ba4ff] hover:bg-[#7a93ee] disabled:bg-blue-200 text-white w-[60px] h-[60px] rounded-xl transition-colors flex items-center justify-center shadow-sm"
                         >
                             <Send size={24} className="ml-0.5 mt-0.5" />
                         </button>
                     </div>
-                    <p className="text-[11px] text-gray-300 text-center mt-6 font-light">
-                        의료 전문 AI 상담은 정확한 회복 프로토콜에 기반하지만, 비상시에는 반드시 병원을 방문하세요.
-                    </p>
                 </div>
             )}
         </Card>
