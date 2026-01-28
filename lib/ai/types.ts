@@ -29,6 +29,12 @@ export interface LLMRequest {
     temperature?: number
     maxTokens?: number
     jsonMode?: boolean
+    responseFormat?: {
+        type: 'json_object' | 'json_schema'
+        schema?: any
+        name?: string // description for json_schema
+        strict?: boolean
+    }
     tools?: ToolDefinition[]
 }
 
