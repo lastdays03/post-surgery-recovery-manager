@@ -16,13 +16,14 @@ export function OnboardingChat() {
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
-            content: '안녕하세요! 수술 후 회복 관리를 도와드릴 AI 가이드입니다. 먼저 어떤 수술을 받으셨는지, 그리고 언제 받으셨는지 말씀해 주시겠어요?'
+            content: '안녕하세요! 수술 후 회복 관리를 도와드릴 AI 가이드입니다. 먼저 어떤 수술을 받으셨는지 말씀해 주시겠어요? (예: 위절제술, 대장절제술, 무릎 인공관절 등)'
         }
     ])
     const [inputValue, setInputValue] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [isComplete, setIsComplete] = useState(false)
     const chatEndRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -31,6 +32,14 @@ export function OnboardingChat() {
     useEffect(() => {
         scrollToBottom()
     }, [messages])
+
+    useEffect(() => {
+        if (!isLoading && !isComplete) {
+            setTimeout(() => {
+                inputRef.current?.focus()
+            }, 10)
+        }
+    }, [isLoading, isComplete])
 
     const handleSendMessage = async () => {
         if (!inputValue.trim() || isLoading) return
@@ -154,6 +163,7 @@ export function OnboardingChat() {
                 <div className="p-6 bg-white border-t">
                     <div className="flex gap-3">
                         <input
+                            ref={inputRef}
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
