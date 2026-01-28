@@ -160,42 +160,104 @@ export function HealthStatusStep() {
                         <Controller
                             name="comorbidities"
                             control={control}
-                            render={({ field }) => (
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    {COMORBIDITY_OPTIONS.map((option) => {
-                                        const value = field.value || []
-                                        const isSelected = value.includes(option)
-                                        const isNone = option === '없음'
+                            render={({ field }) => {
+                                const STANDARD_OPTIONS = ['당뇨', '고혈압', '심장질환', '신장질환', '간질환']
+                                const values = field.value || []
+                                const otherValues = values.filter(v => !STANDARD_OPTIONS.includes(v))
+                                const isOtherChecked = otherValues.length > 0
 
-                                        return (
+                                // Input only shown if explicitly checked or there are values
+                                const [showOtherInput, setShowOtherInput] = useState(isOtherChecked)
+                                const [otherInputValue, setOtherInputValue] = useState(otherValues.join(', '))
+
+                                // Sync local input state if form value changes externally (e.g. initial load)
+                                // identifying if the change came from the input itself is tricky, 
+                                // so we trust the form state for initial render.
+
+                                return (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {/* Standard Options */}
+                                            {STANDARD_OPTIONS.map((option) => {
+                                                const isSelected = values.includes(option)
+                                                return (
+                                                    <label
+                                                        key={option}
+                                                        className={`p-4 border-2 rounded-xl cursor-pointer transition-all text-center ${isSelected
+                                                            ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600'
+                                                            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                const newValues = e.target.checked
+                                                                    ? [...values, option]
+                                                                    : values.filter(v => v !== option)
+                                                                field.onChange(newValues)
+                                                            }}
+                                                            className="sr-only"
+                                                        />
+                                                        <span className="text-base font-bold text-gray-900">{option}</span>
+                                                    </label>
+                                                )
+                                            })}
+
+                                            {/* Other Option */}
                                             <label
-                                                key={option}
-                                                className={`p-4 border-2 rounded-xl cursor-pointer transition-all text-center ${isSelected
+                                                className={`p-4 border-2 rounded-xl cursor-pointer transition-all text-center ${showOtherInput
                                                     ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600'
                                                     : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
                                                     }`}
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    checked={isSelected}
+                                                    checked={showOtherInput}
                                                     onChange={(e) => {
-                                                        if (isNone) {
-                                                            field.onChange(e.target.checked ? ['없음'] : [])
-                                                        } else {
-                                                            const newValue = e.target.checked
-                                                                ? [...field.value.filter(v => v !== '없음'), option]
-                                                                : field.value.filter(v => v !== option)
-                                                            field.onChange(newValue)
+                                                        const isChecked = e.target.checked
+                                                        setShowOtherInput(isChecked)
+                                                        if (!isChecked) {
+                                                            // If unchecked, remove all non-standard values
+                                                            field.onChange(values.filter(v => STANDARD_OPTIONS.includes(v)))
+                                                            setOtherInputValue('')
                                                         }
                                                     }}
                                                     className="sr-only"
                                                 />
-                                                <span className="text-base font-bold text-gray-900">{option}</span>
+                                                <span className="text-base font-bold text-gray-900">기타</span>
                                             </label>
-                                        )
-                                    })}
-                                </div>
-                            )}
+                                        </div>
+
+                                        {/* Other Text Input */}
+                                        {showOtherInput && (
+                                            <div className="animate-in fade-in slide-in-from-top-2">
+                                                <input
+                                                    type="text"
+                                                    value={otherInputValue}
+                                                    placeholder="질환명을 입력해주세요 (예: 천식, 관절염)"
+                                                    onChange={(e) => {
+                                                        const newValue = e.target.value
+                                                        setOtherInputValue(newValue)
+
+                                                        // Update form: Keep standard ones + new custom text
+                                                        const standardOnly = values.filter(v => STANDARD_OPTIONS.includes(v))
+                                                        // If input is empty, just keep standard. 
+                                                        // If comma separated, could split. For now treating as one string or simple split if needed.
+                                                        // User request implies "text inputs". Let's handle it as a single string being added. 
+                                                        // Or better, distinct item.
+
+                                                        // Strategy: The entered text replaces any previous non-standard values
+                                                        const newCustomValues = newValue.trim() ? [newValue] : []
+                                                        field.onChange([...standardOnly, ...newCustomValues])
+                                                    }}
+                                                    className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-gray-700"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            }}
                         />
                     </div>
 
