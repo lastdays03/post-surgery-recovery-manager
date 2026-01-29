@@ -2,17 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getProfile } from '@/lib/local-storage'
+import { getProfile, clearProfile } from '@/lib/local-storage'
 import { UserProfile } from '@/lib/types/user.types'
 import { ProfileEditForm } from '@/components/dashboard/profile-edit-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 
 export default function ProfileEditPage() {
     const router = useRouter()
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+
+    const handleReset = () => {
+        if (confirm('모든 데이터를 초기화하고 처음으로 돌아가시겠습니까? \n이 작업은 되돌릴 수 없습니다.')) {
+            clearProfile()
+            router.push('/')
+        }
+    }
 
     useEffect(() => {
         const loadProfile = () => {
@@ -71,6 +78,28 @@ export default function ProfileEditPage() {
                 </div>
 
                 <ProfileEditForm profile={profile} />
+
+                <div className="mt-12 pt-6 border-t">
+                    <Card className="border-red-100 bg-red-50/30">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-md font-bold text-red-800 flex items-center gap-2">
+                                <Trash2 className="h-4 w-4" /> 위험 구역
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-red-600 mb-4">
+                                모든 프로필 정보와 기록된 데이터를 삭제하고 초기 상태로 돌아갑니다.
+                            </p>
+                            <Button
+                                variant="secondary"
+                                onClick={handleReset}
+                                className="w-full sm:w-auto bg-red-500 text-white hover:bg-red-600 border-none"
+                            >
+                                데이터 전체 초기화
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
             </main>
         </div>
     )

@@ -1,0 +1,487 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/bagjongman/dev/workspace/study/project/test[39m
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mrenders all form fields correctly
+[22m[39mForm Errors: {}
+Form Errors: {}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mshows validation error when required fields are empty
+[22m[39mForm Errors: {}
+Form Errors: {}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mshows validation error when required fields are empty
+[22m[39mForm Errors: {
+  age: {
+    message: [32m'나이를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  gender: {
+    message: [32m'Invalid option: expected one of "male"|"female"'[39m,
+    type: [32m'invalid_value'[39m,
+    ref: [90mundefined[39m
+  },
+  height: {
+    message: [32m'키를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  weight: {
+    message: [32m'몸무게를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  }
+}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mupdates gender when buttons are clicked
+[22m[39mForm Errors: {}
+Form Errors: {}
+Form Errors: {
+  age: {
+    message: [32m'나이를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  gender: {
+    message: [32m'Invalid option: expected one of "male"|"female"'[39m,
+    type: [32m'invalid_value'[39m,
+    ref: [90mundefined[39m
+  },
+  height: {
+    message: [32m'키를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  weight: {
+    message: [32m'몸무게를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  }
+}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mcoerces number inputs and submits correct data
+[22m[39mForm Errors: {}
+Form Errors: {}
+Form Errors: {
+  age: {
+    message: [32m'나이를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  gender: {
+    message: [32m'Invalid option: expected one of "male"|"female"'[39m,
+    type: [32m'invalid_value'[39m,
+    ref: [90mundefined[39m
+  },
+  height: {
+    message: [32m'키를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  },
+  weight: {
+    message: [32m'몸무게를 입력해주세요.'[39m,
+    type: [32m'too_small'[39m,
+    ref: HTMLInputElement {
+      [32m'__reactFiber$bfmu64w829g'[39m: [36m[FiberNode][39m,
+      [32m'__reactProps$bfmu64w829g'[39m: [36m[Object][39m,
+      [32m'__reactEvents$bfmu64w829g'[39m: [36m[Set][39m,
+      value: [36m[Getter/Setter][39m,
+      _valueTracker: [36m[Object][39m,
+      [[32mSymbol(SameObject caches)[39m]: [36m[Object: null prototype][39m
+    }
+  }
+}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mcoerces number inputs and submits correct data
+[22m[39mSubmitting profile: {
+  age: [33m30[39m,
+  gender: [32m'male'[39m,
+  height: [33m175[39m,
+  weight: [33m70[39m,
+  digestiveCapacity: [32m'100'[39m,
+  comorbidities: [32m''[39m
+}
+
+[90mstdout[2m | test/verify-onboarding-form.test.tsx[2m > [22m[2mOnboardingForm[2m > [22m[2mcoerces number inputs and submits correct data
+[22m[39mForm Errors: {}
+
+ [31m❯[39m test/verify-onboarding-form.test.tsx [2m([22m[2m4 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 1268[2mms[22m[39m
+     [32m✓[39m renders all form fields correctly[32m 69[2mms[22m[39m
+[31m     [31m×[31m shows validation error when required fields are empty[39m[33m 1103[2mms[22m[39m
+     [32m✓[39m updates gender when buttons are clicked[32m 21[2mms[22m[39m
+     [32m✓[39m coerces number inputs and submits correct data[32m 75[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/verify-onboarding-form.test.tsx[2m > [22mOnboardingForm[2m > [22mshows validation error when required fields are empty
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: 성별을 선택해주세요.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"bg-white rounded-2xl shadow-lg p-8 max-w-xl mx-auto shadow-lg"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col space-y-1.5 pb-6 "[39m
+      [36m>[39m
+        [36m<h3[39m
+          [33mclass[39m=[32m"font-semibold leading-none tracking-tight text-xl text-gray-900 "[39m
+        [36m>[39m
+          [0m기본 정보 및 건강 상태[0m
+        [36m</h3>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"text-sm text-gray-500 "[39m
+        [36m>[39m
+          [0m정확한 영양 가이드를 위해 정보를 입력해주세요.[0m
+        [36m</p>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"p-0 "[39m
+      [36m>[39m
+        [36m<form[39m
+          [33mclass[39m=[32m"space-y-6"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"space-y-4"[39m
+          [36m>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"font-semibold text-gray-700"[39m
+            [36m>[39m
+              [0m기본 정보[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"space-y-2"[39m
+              [36m>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                  [33mfor[39m=[32m"age"[39m
+                [36m>[39m
+                  [0m나이[0m
+                [36m</label>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"mb-6 mb-0"[39m
+                [36m>[39m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                    [33mid[39m=[32m"age"[39m
+                    [33mname[39m=[32m"age"[39m
+                    [33mplaceholder[39m=[32m"예: 45"[39m
+                    [33mtype[39m=[32m"number"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                [36m>[39m
+                  [0m나이를 입력해주세요.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"space-y-2"[39m
+              [36m>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                [36m>[39m
+                  [0m성별[0m
+                [36m</label>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex gap-4 mt-2"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 py-2 px-4 rounded-md border text-sm font-medium transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50"[39m
+                    [33mdata-testid[39m=[32m"gender-male"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0m남성[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 py-2 px-4 rounded-md border text-sm font-medium transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50"[39m
+                    [33mdata-testid[39m=[32m"gender-female"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0m여성[0m
+                  [36m</button>[39m
+                [36m</div>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                [36m>[39m
+                  [0mInvalid option: expected one of "male"|"female"[0m
+                [36m</p>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"space-y-2"[39m
+              [36m>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                  [33mfor[39m=[32m"height"[39m
+                [36m>[39m
+                  [0m키 (cm)[0m
+                [36m</label>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"mb-6 mb-0"[39m
+                [36m>[39m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                    [33mid[39m=[32m"height"[39m
+                    [33mname[39m=[32m"height"[39m
+                    [33mplaceholder[39m=[32m"예: 170"[39m
+                    [33mtype[39m=[32m"number"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                [36m>[39m
+                  [0m키를 입력해주세요.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"space-y-2"[39m
+              [36m>[39m
+                [36m<label[39m
+                  [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                  [33mfor[39m=[32m"weight"[39m
+                [36m>[39m
+                  [0m몸무게 (kg)[0m
+                [36m</label>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"mb-6 mb-0"[39m
+                [36m>[39m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                    [33mid[39m=[32m"weight"[39m
+                    [33mname[39m=[32m"weight"[39m
+                    [33mplaceholder[39m=[32m"예: 65"[39m
+                    [33mtype[39m=[32m"number"[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<p[39m
+                  [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                [36m>[39m
+                  [0m몸무게를 입력해주세요.[0m
+                [36m</p>[39m
+ ...
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"bg-white rounded-2xl shadow-lg p-8 max-w-xl mx-auto shadow-lg"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex flex-col space-y-1.5 pb-6 "[39m
+        [36m>[39m
+          [36m<h3[39m
+            [33mclass[39m=[32m"font-semibold leading-none tracking-tight text-xl text-gray-900 "[39m
+          [36m>[39m
+            [0m기본 정보 및 건강 상태[0m
+          [36m</h3>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-gray-500 "[39m
+          [36m>[39m
+            [0m정확한 영양 가이드를 위해 정보를 입력해주세요.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"p-0 "[39m
+        [36m>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"space-y-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"space-y-4"[39m
+            [36m>[39m
+              [36m<h3[39m
+                [33mclass[39m=[32m"font-semibold text-gray-700"[39m
+              [36m>[39m
+                [0m기본 정보[0m
+              [36m</h3>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"space-y-2"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                    [33mfor[39m=[32m"age"[39m
+                  [36m>[39m
+                    [0m나이[0m
+                  [36m</label>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"mb-6 mb-0"[39m
+                  [36m>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                      [33mid[39m=[32m"age"[39m
+                      [33mname[39m=[32m"age"[39m
+                      [33mplaceholder[39m=[32m"예: 45"[39m
+                      [33mtype[39m=[32m"number"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                  [36m>[39m
+                    [0m나이를 입력해주세요.[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"space-y-2"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                  [36m>[39m
+                    [0m성별[0m
+                  [36m</label>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"flex gap-4 mt-2"[39m
+                  [36m>[39m
+                    [36m<button[39m
+                      [33mclass[39m=[32m"flex-1 py-2 px-4 rounded-md border text-sm font-medium transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50"[39m
+                      [33mdata-testid[39m=[32m"gender-male"[39m
+                      [33mtype[39m=[32m"button"[39m
+                    [36m>[39m
+                      [0m남성[0m
+                    [36m</button>[39m
+                    [36m<button[39m
+                      [33mclass[39m=[32m"flex-1 py-2 px-4 rounded-md border text-sm font-medium transition-colors bg-white text-gray-700 border-gray-300 hover:bg-gray-50"[39m
+                      [33mdata-testid[39m=[32m"gender-female"[39m
+                      [33mtype[39m=[32m"button"[39m
+                    [36m>[39m
+                      [0m여성[0m
+                    [36m</button>[39m
+                  [36m</div>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                  [36m>[39m
+                    [0mInvalid option: expected one of "male"|"female"[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"space-y-2"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                    [33mfor[39m=[32m"height"[39m
+                  [36m>[39m
+                    [0m키 (cm)[0m
+                  [36m</label>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"mb-6 mb-0"[39m
+                  [36m>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                      [33mid[39m=[32m"height"[39m
+                      [33mname[39m=[32m"height"[39m
+                      [33mplaceholder[39m=[32m"예: 170"[39m
+                      [33mtype[39m=[32m"number"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<p[39m
+                    [33mclass[39m=[32m"text-red-500 text-xs"[39m
+                  [36m>[39m
+                    [0m키를 입력해주세요.[0m
+                  [36m</p>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"space-y-2"[39m
+                [36m>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-900"[39m
+                    [33mfor[39m=[32m"weight"[39m
+                  [36m>[39m
+                    [0m몸무게 (kg)[0m
+                  [36m</label>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"mb-6 mb-0"[39m
+                  [36m>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full px-6 py-4 text-lg font-medium text-gray-900 border-2 rounded-xl focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:text-gray-500 border-gray-300 "[39m
+                      [33mid[39m=[32m"weight"[39m
+                      [33mname[39m=[32m"weight"[39m
+                      [33mplaceholder[39m=[32m"예: 65...
+[90m [2m❯[22m Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:[2m163:27[22m[39m
+[36m [2m❯[22m test/verify-onboarding-form.test.tsx:[2m50:15[22m[39m
+    [90m 48| [39m        fireEvent[33m.[39m[34mclick[39m(submitButtons[[34m0[39m])
+    [90m 49| [39m
+    [90m 50| [39m        [35mawait[39m [34mwaitFor[39m(() [33m=>[39m {
+    [90m   | [39m              [31m^[39m
+    [90m 51| [39m            expect(screen.getAllByText('나이를 입력해주세요.').length).toBeGrea…
+    [90m 52| [39m            expect(screen.getAllByText('성별을 선택해주세요.').length).toBeGrea…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (4)[39m
+[2m   Start at [22m 19:17:59
+[2m   Duration [22m 1.94s[2m (transform 96ms, setup 72ms, import 231ms, tests 1.27s, environment 286ms)[22m
+

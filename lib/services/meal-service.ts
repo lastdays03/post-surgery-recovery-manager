@@ -1,5 +1,6 @@
 import type { Meal } from '@/lib/types/meal.types'
 import { supabase } from '@/lib/supabase-client'
+import { format } from 'date-fns'
 
 /**
  * 식단 계획 인터페이스
@@ -41,27 +42,29 @@ function saveToLocalStorage(plan: MealPlan) {
  * 오늘 날짜 (YYYY-MM-DD)
  */
 export function getTodayDate(): string {
-    return new Date().toISOString().split('T')[0]
+    return format(new Date(), 'yyyy-MM-dd')
 }
 
 /**
  * [DB] 오늘의 식단 조회
  */
-export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | null> {
+/**
+ * [DB] 특정 날짜의 식단 조회 (기본값: 오늘)
+ */
+export async function fetchMealPlan(userId: string, date?: string): Promise<MealPlan | null> {
     try {
-        const today = getTodayDate()
+        const targetDate = date || getTodayDate()
         const { data: dbData, error } = await (supabase as any)
             .from('meal_plans')
             .select('*')
             .eq('user_id', userId)
-            .eq('date', today)
+            .eq('date', targetDate)
             .single()
 
         const data = dbData as any
 
         if (error) {
             if (error.code === 'PGRST116') {
-                // 데이터 없음 (정상)
                 return null
             }
             console.error('DB 식단 조회 오류:', error)
@@ -69,8 +72,6 @@ export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | nul
         }
 
         if (data) {
-            // DB 데이터를 MealPlan 형식으로 변환
-            // Supabase에서 JSONB는 자동으로 파싱되어 객체/배열로 반환될 수 있음
             let parsedMeals: Meal[] = []
             if (typeof data.meals === 'string') {
                 try {
@@ -83,13 +84,9 @@ export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | nul
                 parsedMeals = data.meals as Meal[]
             }
 
-            // 🚨 방어 로직: 만약 파싱된 결과가 [[{...}, {...}]] 형태의 이중 배열이라면 평탄화 수행
             if (parsedMeals.length === 1 && Array.isArray(parsedMeals[0])) {
-                console.log('⚠️ 이중 배열(Nested Array) 데이터 감지됨 - 평탄화 수행')
                 parsedMeals = (parsedMeals[0] as unknown) as Meal[]
             }
-
-            console.log(`[DB Load] ID: ${data.id}, Date: ${data.date}, Meals Count: ${parsedMeals?.length || 0}`)
 
             const plan: MealPlan = {
                 ...data,
@@ -99,8 +96,6 @@ export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | nul
                 updated_at: new Date(data.updated_at)
             }
 
-            // 로컬 스토리지 캐시 업데이트 (타임스탬프 포함)
-            saveToLocalStorage(plan)
             return plan
         }
         return null
@@ -109,6 +104,16 @@ export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | nul
         console.error('식단 조회 예외:', error)
         return null
     }
+}
+
+
+
+/**
+ * [Deprecated] 오늘의 식단 조회 (로컬 스토리지 기반 - 하위 호환)
+ * fetchMealPlan 사용 권장
+ */
+export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | null> {
+    return fetchMealPlan(userId)
 }
 
 /**
@@ -211,8 +216,10 @@ export function saveMealPlan(plan: Omit<MealPlan, 'id' | 'created_at' | 'updated
 /**
  * [DB] 식단 업데이트
  */
+/**
+ * [DB] 식단 업데이트
+ */
 export async function updateMealPlanInDB(userId: string, meals: Meal[]): Promise<MealPlan | null> {
-    const today = getTodayDate()
     try {
         const { data: dbData, error } = await (supabase as any)
             .from('meal_plans')
@@ -221,7 +228,7 @@ export async function updateMealPlanInDB(userId: string, meals: Meal[]): Promise
                 updated_at: new Date().toISOString()
             } as any)
             .eq('user_id', userId)
-            .eq('date', today)
+            .eq('date', getTodayDate())
             .select()
             .single()
 
@@ -269,19 +276,107 @@ export function updateMealPlan(userId: string, meals: Meal[]): MealPlan | null {
 /**
  * 식단 유효성 검증
  */
+/**
+ * 식단 유효성 검증
+ */
 export function isMealPlanValid(
     plan: MealPlan | null,
-    currentPhase: 'liquid' | 'soft' | 'regular'
+    currentPhase: 'liquid' | 'soft' | 'regular',
+    expectedDate?: string
 ): boolean {
     if (!plan) return false
-    if (plan.date !== getTodayDate()) return false
-    // 로컬 스토리지 데이터일 경우 phase 검증이 필요할 수 있으나, 
-    // DB 데이터는 이미 date+userId로 유니크하므로 phase가 달라도 보여줄지 말지 결정해야 함.
-    // 일단 엄격하게 체크
+
+    const targetDate = expectedDate || getTodayDate()
+    if (plan.date !== targetDate) return false
+
     if (plan.recovery_phase !== currentPhase) return false
 
     // 식단 데이터가 비어있으면 무효
     if (!plan.meals || plan.meals.length === 0) return false
 
     return true
+}
+
+/**
+ * [DB] 월간 식단 통계 조회 (캘린더용)
+ * 특정 월의 식단 존재 여부만 조회
+ */
+export async function fetchMonthlyMealStats(
+    userId: string,
+    year: number,
+    month: number
+): Promise<{ date: string; hasPlan: boolean; meals: { type: string; names: string[] }[] }[]> {
+    try {
+        // 해당 월의 1일과 마지막 날 계산
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+        // 다음 달 1일에서 하루 빼서 마지막 날 구하기 (간단하게 해당 월의 말일 계산)
+        const lastDay = new Date(year, month, 0).getDate()
+        const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
+
+        const { data, error } = await (supabase as any)
+            .from('meal_plans')
+            .select('date, meals')
+            .eq('user_id', userId)
+            .gte('date', startDate)
+            .lte('date', endDate)
+
+        if (error) {
+            console.error('월간 식단 통계 조회 오류:', error)
+            return []
+        }
+
+        if (!data) return []
+
+        const result = (data as { date: string, meals: any }[]).map(item => {
+            let meals: Meal[] = []
+            if (typeof item.meals === 'string') {
+                try {
+                    meals = JSON.parse(item.meals)
+                } catch (e) {
+                    meals = []
+                }
+            } else if (Array.isArray(item.meals)) {
+                meals = item.meals
+            } else if (item.meals && Array.isArray((item.meals as any)[0])) {
+                // Handle double nested array case if it exists in DB due to previous bugs
+                meals = (item.meals as any)[0]
+            }
+
+            // Group by mealTime to combine multiple items for the same slot (e.g. snacks)
+            const grouped = meals.reduce((acc, m) => {
+                const key = m.mealTime
+                if (!acc[key]) acc[key] = []
+                acc[key].push(m.name)
+                return acc
+            }, {} as Record<string, string[]>)
+
+            // Sort order: breakfast -> lunch -> dinner -> snack -> others
+            const order = ['breakfast', 'lunch', 'dinner', 'snack']
+
+            const mealDetails = Object.entries(grouped)
+                .map(([type, names]) => ({
+                    type,
+                    names
+                }))
+                .sort((a, b) => {
+                    const idxA = order.indexOf(a.type)
+                    const idxB = order.indexOf(b.type)
+                    const valA = idxA === -1 ? 99 : idxA
+                    const valB = idxB === -1 ? 99 : idxB
+                    if (valA === valB) return a.type.localeCompare(b.type)
+                    return valA - valB
+                })
+
+            return {
+                date: item.date,
+                hasPlan: true,
+                meals: mealDetails
+            }
+        })
+
+        return result
+    } catch (error) {
+        console.error('월간 식단 통계 조회 예외:', error)
+        return []
+    }
 }

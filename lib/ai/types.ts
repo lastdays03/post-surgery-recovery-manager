@@ -26,6 +26,8 @@ export interface ToolDefinition {
 
 export interface LLMRequest {
     messages: ChatMessage[]
+    model?: string
+    reasoningEffort?: 'low' | 'medium' | 'high'
     temperature?: number
     maxTokens?: number
     jsonMode?: boolean
@@ -53,4 +55,4 @@ export interface LLMClient {
     generateEmbedding(text: string): Promise<number[]>
 }
 
-export type AIProvider = 'openai' | 'google' | 'groq' | 'mock'
+export type AIProvider = 'openai' | 'google' | 'groq' | 'mock' | 'deepseek'

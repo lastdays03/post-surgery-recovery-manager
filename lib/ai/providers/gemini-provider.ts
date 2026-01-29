@@ -12,12 +12,30 @@ export class GeminiProvider implements LLMClient {
 
     async chat(request: LLMRequest): Promise<LLMResponse> {
         const model = this.client.getGenerativeModel({
-            model: this.modelName,
+            model: request.model || this.modelName,
             generationConfig: {
                 temperature: request.temperature,
                 maxOutputTokens: request.maxTokens,
                 responseMimeType: request.jsonMode ? "application/json" : "text/plain"
-            }
+            },
+            safetySettings: [
+                {
+                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+            ]
         })
 
         // Convert messages to Gemini format

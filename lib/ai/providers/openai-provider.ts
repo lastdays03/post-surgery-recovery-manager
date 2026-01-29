@@ -5,8 +5,12 @@ export class OpenAIProvider implements LLMClient {
     private client: OpenAI
     private model: string
 
-    constructor(apiKey: string, model: string = 'gpt-4o') {
-        this.client = new OpenAI({ apiKey })
+    constructor(apiKey: string, model: string = 'gpt-4o', baseURL?: string) {
+        this.client = new OpenAI({
+            apiKey,
+            baseURL,
+            maxRetries: 3 // Cause #4 Solution: Auto-retry on network/timeout errors
+        })
         this.model = model
     }
 
@@ -19,9 +23,11 @@ export class OpenAIProvider implements LLMClient {
             tool_calls: msg.tool_calls as any
         }))
 
+        const modelToUse = request.model || this.model
+
         // Reasoning models (e.g. o1, gpt-5-nano) do not support custom temperature
         const REASONING_MODELS = ['o1', 'o3', 'gpt-5-nano', 'gpt-5.2', 'gpt-5-mini'];
-        const isReasoningModel = REASONING_MODELS.some(m => this.model.includes(m));
+        const isReasoningModel = REASONING_MODELS.some(m => modelToUse.includes(m));
 
         let response_format: any = undefined;
         if (request.responseFormat) {
@@ -42,7 +48,7 @@ export class OpenAIProvider implements LLMClient {
         }
 
         const baseParams: any = {
-            model: this.model,
+            model: modelToUse,
             messages,
             tools: request.tools as any,
             response_format
@@ -50,16 +56,32 @@ export class OpenAIProvider implements LLMClient {
 
         if (isReasoningModel) {
             baseParams.max_completion_tokens = request.maxTokens
+            if (request.reasoningEffort) {
+                baseParams.reasoning_effort = request.reasoningEffort
+            }
         } else {
             baseParams.max_tokens = request.maxTokens
             baseParams.temperature = request.temperature
         }
 
-        console.log(`📡 [LLM] Using Model: ${this.model}`)
+        console.log(`📡 [LLM] Using Model: ${modelToUse}`)
 
         const response = await this.client.chat.completions.create(baseParams)
 
         const choice = response.choices[0]
+
+        // Handle Safety Refusals (Cause #3)
+        if (choice.message.refusal) {
+            console.error(`🚨 [LLM Safety Refusal]: ${choice.message.refusal}`)
+            throw new Error(`AI Safety Refusal: ${choice.message.refusal}`)
+        }
+
+        // Monitor Finish Reason (Cause #2 check)
+        if (choice.finish_reason === 'length') {
+            console.warn('⚠️ [LLM Warning] Response truncated due to Max Tokens limit.')
+        } else if (choice.finish_reason === 'content_filter') {
+            console.warn('⚠️ [LLM Warning] Response affected by Content Filter.')
+        }
 
         return {
             content: choice.message.content || '',
