@@ -405,11 +405,19 @@ Patient info: ${request.surgeryType || '위 절제술'}, Phase: ${request.recove
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.7,
+            maxTokens: 14000,
             jsonMode: true,
             responseFormat: { type: 'json_object' }
         })
 
-        const data = JSON.parse(response.content)
+        let data: any;
+        try {
+            data = JSON.parse(response.content)
+        } catch (parseError) {
+            console.error('JSON 파싱 에러 발생 (Multi-day). 응답 내용 일부:', response.content.substring(0, 500) + '...')
+            throw new Error('다일 식단 생성 중 AI 응답 파싱 오류가 발생했습니다. 응답이 너무 길어 잘렸을 수 있습니다.')
+        }
+
         const normalizedData: Record<string, Meal[]> = {}
 
         for (const [date, dailyMeals] of Object.entries(data)) {
