@@ -79,7 +79,7 @@ export default function DocumentAdvancedPage() {
                 // Fallback: save to local storage anyway
                 saveProfile({
                     id: crypto.randomUUID(),
-                    surgery_type: basicData.surgery_type.value,
+                    surgery_type: basicData?.surgery_type.value || localProfile?.surgery_type || 'gastric_resection',
                     advanced_metrics: data,
                     created_at: new Date().toISOString()
                 } as any)

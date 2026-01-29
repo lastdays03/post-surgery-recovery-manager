@@ -241,18 +241,6 @@ export function OnboardingForm() {
                                 ))}
                                 <button
                                     type="button"
-                                    onClick={() => toggleComorbidity('none')}
-                                    className={cn(
-                                        "py-3 px-2 rounded-lg border text-sm font-medium transition-all",
-                                        form.watch('comorbidities').includes('none')
-                                            ? "bg-gray-100 border-gray-500 text-gray-900 font-semibold"
-                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-                                    )}
-                                >
-                                    없음
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() => toggleComorbidity('other')}
                                     className={cn(
                                         "py-3 px-2 rounded-lg border text-sm font-medium transition-all",
@@ -269,7 +257,7 @@ export function OnboardingForm() {
                             {form.watch('comorbidities').includes('other') && (
                                 <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-300">
                                     <Input
-                                        placeholder="기저질환을 직접 입력해주세요"
+                                        placeholder="예: 고지혈증, 알레르기 등"
                                         {...form.register('otherComorbidity')}
                                         className="bg-gray-50"
                                     />

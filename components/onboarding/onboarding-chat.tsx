@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Send, User, Bot, Loader2, CheckCircle2 } from 'lucide-react'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -194,23 +195,22 @@ export function OnboardingChat() {
                 {/* Date Picker UI */}
                 {confirmationStatus === 'confirmed' && !isComplete && !isLoading && messages[messages.length - 1].role === 'assistant' && (
                     <div className="flex justify-center p-4 animate-in fade-in slide-in-from-bottom-2">
-                        <div className="bg-white p-4 rounded-xl shadow-md border w-full max-w-sm flex flex-col items-center gap-4">
-                            <label className="block text-sm font-medium text-gray-700">수술일자 선택</label>
+                        <div className="bg-white p-6 rounded-2xl shadow-md border w-full max-w-md flex flex-col items-center gap-4">
                             <Calendar
                                 mode="single"
                                 selected={selectedDate}
                                 onSelect={setSelectedDate}
                                 disabled={(date) => date > new Date()}
-                                className="rounded-md border"
+                                className="rounded-2xl border-2"
                             />
                             {selectedDate && (
                                 <div className="w-full flex flex-col gap-2">
-                                    <p className="text-center text-sm font-medium text-blue-600">
-                                        선택된 날짜: {format(selectedDate, 'yyyy-MM-dd')}
+                                    <p className="text-center text-sm font-medium text-gray-700">
+                                        선택된 날짜: {format(selectedDate, 'PPP', { locale: ko })}
                                     </p>
                                     <Button
                                         onClick={() => handleDateSelect(format(selectedDate, 'yyyy-MM-dd'))}
-                                        className="w-full bg-blue-600 hover:bg-blue-700"
+                                        className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-lg rounded-xl font-bold"
                                     >
                                         선택 완료
                                     </Button>
