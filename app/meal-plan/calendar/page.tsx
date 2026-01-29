@@ -16,8 +16,10 @@ export default function MealCalendarPage() {
         year: new Date().getFullYear(),
         month: new Date().getMonth() + 1
     })
-    const [mealStats, setMealStats] = useState<Record<string, boolean>>({}) // 날짜별 식단 존재 여부
+    const [mealStats, setMealStats] = useState<Record<string, { hasPlan: boolean; meals: { type: string; names: string[] }[] }>>({})
+    const [monthlyCache, setMonthlyCache] = useState<Set<string>>(new Set()) // 캐시된 월 추적 (YYYY-MM)
     const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null) // 에러 상태
 
     // 사용자 ID 로드
     useEffect(() => {
@@ -27,28 +29,53 @@ export default function MealCalendarPage() {
         }
     }, [])
 
-    // 식단 데이터 페칭
+    // 식단 데이터 페칭 (캐싱 적용)
     useEffect(() => {
         if (!userId) return
 
+        const cacheKey = `${currentDate.year}-${String(currentDate.month).padStart(2, '0')}`
+
+        // 이미 캐시된 데이터가 있으면 스킵 (단, 강제 새로고침 필요 시 로직 수정 가능)
+        if (monthlyCache.has(cacheKey)) return
+
         const loadStats = async () => {
             setIsLoading(true)
+            setError(null)
             try {
                 const stats = await fetchMonthlyMealStats(userId, currentDate.year, currentDate.month)
-                const statsMap: Record<string, boolean> = {}
-                stats.forEach(item => {
-                    statsMap[item.date] = item.hasPlan
+
+                setMealStats(prev => {
+                    const next = { ...prev }
+                    stats.forEach(item => {
+                        next[item.date] = {
+                            hasPlan: item.hasPlan,
+                            meals: item.meals
+                        }
+                    })
+                    return next
                 })
-                setMealStats(statsMap)
+
+                setMonthlyCache(prev => new Set(prev).add(cacheKey))
             } catch (error) {
                 console.error('식단 통계 로드 실패:', error)
+                setError('데이터를 불러오는데 실패했습니다.')
             } finally {
                 setIsLoading(false)
             }
         }
 
         loadStats()
-    }, [userId, currentDate.year, currentDate.month])
+    }, [userId, currentDate.year, currentDate.month, monthlyCache])
+
+    const handleRetry = () => {
+        // 캐시 키를 제거하여 다시 로드하도록 유도
+        const cacheKey = `${currentDate.year}-${String(currentDate.month).padStart(2, '0')}`
+        setMonthlyCache(prev => {
+            const next = new Set(prev)
+            next.delete(cacheKey)
+            return next
+        })
+    }
 
     // 월 이동 핸들러
     const handlePrevMonth = () => {
@@ -67,6 +94,15 @@ export default function MealCalendarPage() {
             }
             return { ...prev, month: prev.month + 1 }
         })
+    }
+
+    // 날짜 클릭 핸들러
+    const handleDateClick = (date: string, hasPlan: boolean) => {
+        if (hasPlan) {
+            router.push(`/meal-plan?date=${date}&source=calendar`)
+        } else {
+            console.log(`${date}: 식단이 없습니다.`)
+        }
     }
 
     // 캘린더 그리드 생성 (메모이제이션)
@@ -98,6 +134,8 @@ export default function MealCalendarPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={handlePrevMonth}
+                        disabled={isLoading}
+                        aria-label="이전 달"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
@@ -112,10 +150,27 @@ export default function MealCalendarPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={handleNextMonth}
+                        disabled={isLoading}
+                        aria-label="다음 달"
                     >
                         <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+                        <span className="text-sm font-medium">{error}</span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white hover:bg-red-50 border-red-200 text-red-600 h-8"
+                            onClick={handleRetry}
+                        >
+                            다시 시도
+                        </Button>
+                    </div>
+                )}
 
                 {/* Calendar Grid */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -142,7 +197,8 @@ export default function MealCalendarPage() {
                                     <div key={day.date} className="relative">
                                         <CalendarCell
                                             day={day}
-                                            hasPlan={mealStats[day.date]}
+                                            mealData={mealStats[day.date]}
+                                            onDateClick={handleDateClick}
                                         />
                                     </div>
                                 ))}
@@ -156,11 +212,49 @@ export default function MealCalendarPage() {
 }
 
 // 캘린더 셀 컴포넌트
-function CalendarCell({ day, hasPlan }: { day: CalendarDay; hasPlan?: boolean }) {
+function CalendarCell({
+    day,
+    mealData,
+    onDateClick
+}: {
+    day: CalendarDay;
+    mealData?: { hasPlan: boolean; meals: { type: string; names: string[] }[] };
+    onDateClick: (date: string, hasPlan: boolean) => void;
+}) {
+    // 식사 유형별 고정 색상 및 간식용 팔레트
+    const FIXED_COLORS: Record<string, string> = {
+        'breakfast': 'bg-amber-100 text-amber-700',
+        'lunch': 'bg-emerald-100 text-emerald-700',
+        'dinner': 'bg-blue-100 text-blue-700'
+    }
+
+    const SNACK_PALETTE = [
+        'bg-purple-100 text-purple-700',
+        'bg-pink-100 text-pink-700',
+        'bg-indigo-100 text-indigo-700',
+        'bg-orange-100 text-orange-700',
+        'bg-teal-100 text-teal-700',
+    ]
+
+    // 뱃지 스타일 결정 로직
+    const getBadgeStyle = (type: string, snackIndex: number) => {
+        if (FIXED_COLORS[type]) {
+            return FIXED_COLORS[type]
+        }
+        // 간식(또는 기타)인 경우 팔레트에서 순서대로 색상 선택
+        return SNACK_PALETTE[snackIndex % SNACK_PALETTE.length]
+    }
+
+    // 렌더링 시 간식 인덱스 추적을 위한 변수
+    let snackCounter = 0;
+
     return (
-        <div
+        <button
+            type="button"
+            onClick={() => onDateClick(day.date, mealData?.hasPlan ?? false)}
+            aria-label={`${day.date}${mealData?.hasPlan ? ", 식단 조회하기" : ", 식단 없음"}`}
             className={cn(
-                "min-h-[80px] sm:min-h-[100px] lg:min-h-[120px] p-2 transition-colors relative",
+                "w-full text-left min-h-[80px] sm:min-h-[100px] lg:min-h-[120px] p-2 transition-colors relative flex flex-col gap-1 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
                 day.isCurrentMonth ? "bg-white hover:bg-gray-50/50" : "bg-gray-50/30",
                 day.isToday && "bg-blue-50/50"
             )}
@@ -177,15 +271,26 @@ function CalendarCell({ day, hasPlan }: { day: CalendarDay; hasPlan?: boolean })
                 </span>
             </div>
 
-            {/* 식단 정보 표시 (Phase 2) */}
-            <div className="mt-2 flex flex-col items-center">
-                {hasPlan && (
-                    <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        <span className="text-[10px] text-gray-500 font-medium hidden sm:inline">식단 있음</span>
-                    </div>
-                )}
+            {/* 식단 정보 표시 (상세 음식명) */}
+            <div className="flex flex-col gap-1 mt-1 w-full">
+                {mealData?.hasPlan && mealData.meals.map((meal, idx) => {
+                    const isSnack = !FIXED_COLORS[meal.type];
+                    const currentSnackIndex = isSnack ? snackCounter++ : 0;
+
+                    return (
+                        <div
+                            key={`${meal.type}-${idx}`}
+                            className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-medium truncate w-full text-left",
+                                getBadgeStyle(meal.type, currentSnackIndex)
+                            )}
+                            title={meal.names.join(', ')}
+                        >
+                            {meal.names.join(', ')}
+                        </div>
+                    )
+                })}
             </div>
-        </div>
+        </button>
     )
 }

@@ -50,13 +50,14 @@ export function getTodayDate(): string {
 /**
  * [DB] 특정 날짜의 식단 조회 (기본값: 오늘)
  */
-export async function fetchMealPlan(userId: string): Promise<MealPlan | null> {
+export async function fetchMealPlan(userId: string, date?: string): Promise<MealPlan | null> {
     try {
+        const targetDate = date || getTodayDate()
         const { data: dbData, error } = await (supabase as any)
             .from('meal_plans')
             .select('*')
             .eq('user_id', userId)
-            .eq('date', getTodayDate())
+            .eq('date', targetDate)
             .single()
 
         const data = dbData as any
@@ -279,10 +280,13 @@ export function updateMealPlan(userId: string, meals: Meal[]): MealPlan | null {
  */
 export function isMealPlanValid(
     plan: MealPlan | null,
-    currentPhase: 'liquid' | 'soft' | 'regular'
+    currentPhase: 'liquid' | 'soft' | 'regular',
+    expectedDate?: string
 ): boolean {
     if (!plan) return false
-    if (plan.date !== getTodayDate()) return false
+
+    const targetDate = expectedDate || getTodayDate()
+    if (plan.date !== targetDate) return false
 
     if (plan.recovery_phase !== currentPhase) return false
 
@@ -300,7 +304,7 @@ export async function fetchMonthlyMealStats(
     userId: string,
     year: number,
     month: number
-): Promise<{ date: string; hasPlan: boolean }[]> {
+): Promise<{ date: string; hasPlan: boolean; meals: { type: string; names: string[] }[] }[]> {
     try {
         // 해당 월의 1일과 마지막 날 계산
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`
@@ -310,7 +314,7 @@ export async function fetchMonthlyMealStats(
 
         const { data, error } = await (supabase as any)
             .from('meal_plans')
-            .select('date')
+            .select('date, meals')
             .eq('user_id', userId)
             .gte('date', startDate)
             .lte('date', endDate)
@@ -322,11 +326,52 @@ export async function fetchMonthlyMealStats(
 
         if (!data) return []
 
-        // 날짜별로 매핑 (중복 제거는 DB 유니크 제약조건 덕분에 불필요하지만 안전하게 처리)
-        const result = (data as { date: string }[]).map(item => ({
-            date: item.date,
-            hasPlan: true
-        }))
+        const result = (data as { date: string, meals: any }[]).map(item => {
+            let meals: Meal[] = []
+            if (typeof item.meals === 'string') {
+                try {
+                    meals = JSON.parse(item.meals)
+                } catch (e) {
+                    meals = []
+                }
+            } else if (Array.isArray(item.meals)) {
+                meals = item.meals
+            } else if (item.meals && Array.isArray((item.meals as any)[0])) {
+                // Handle double nested array case if it exists in DB due to previous bugs
+                meals = (item.meals as any)[0]
+            }
+
+            // Group by mealTime to combine multiple items for the same slot (e.g. snacks)
+            const grouped = meals.reduce((acc, m) => {
+                const key = m.mealTime
+                if (!acc[key]) acc[key] = []
+                acc[key].push(m.name)
+                return acc
+            }, {} as Record<string, string[]>)
+
+            // Sort order: breakfast -> lunch -> dinner -> snack -> others
+            const order = ['breakfast', 'lunch', 'dinner', 'snack']
+
+            const mealDetails = Object.entries(grouped)
+                .map(([type, names]) => ({
+                    type,
+                    names
+                }))
+                .sort((a, b) => {
+                    const idxA = order.indexOf(a.type)
+                    const idxB = order.indexOf(b.type)
+                    const valA = idxA === -1 ? 99 : idxA
+                    const valB = idxB === -1 ? 99 : idxB
+                    if (valA === valB) return a.type.localeCompare(b.type)
+                    return valA - valB
+                })
+
+            return {
+                date: item.date,
+                hasPlan: true,
+                meals: mealDetails
+            }
+        })
 
         return result
     } catch (error) {

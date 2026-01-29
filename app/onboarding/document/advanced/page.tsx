@@ -3,12 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useDocumentOnboardingStore } from '@/lib/stores/document-onboarding-store'
 import { AdvancedMetricsForm, type AdvancedMetricsFormData } from '@/components/onboarding/advanced-metrics-form'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { getProfile } from '@/lib/local-storage'
 
-export default function DocumentAdvancedPage() {
+function DocumentAdvancedContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const isFromDashboard = searchParams.get('from') === 'dashboard'
@@ -128,5 +128,13 @@ export default function DocumentAdvancedPage() {
                 />
             </div>
         </div>
+    )
+}
+
+export default function DocumentAdvancedPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <DocumentAdvancedContent />
+        </Suspense>
     )
 }

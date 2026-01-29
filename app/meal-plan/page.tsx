@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getProfile } from '@/lib/local-storage'
 import { calculateRecoveryPhase } from '@/lib/profiling-engine'
 import type { UserProfile } from '@/lib/types/user.types'
@@ -36,9 +36,11 @@ import { saveMealPlanToDB, updateMealPlanInDB } from '@/lib/services/meal-servic
 
 // ... (다른 imports 생략, replace 로직에서 처리)
 
-export default function MealPlanPage() {
+function MealPlanContent() {
     const router = useRouter()
-    // 쿼리 파라미터에서 date 가져오기 (없으면 오늘 날짜)
+    const searchParams = useSearchParams()
+    const dateParam = searchParams.get('date')
+
 
     const [profile, setProfile] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
@@ -52,7 +54,7 @@ export default function MealPlanPage() {
     useEffect(() => {
         // 날짜가 변경되면 데이터 로드
         loadProfileAndGenerateMeals()
-    }, [])
+    }, [dateParam])
 
     const loadProfileAndGenerateMeals = async () => {
         const savedProfile = getProfile()
@@ -84,27 +86,32 @@ export default function MealPlanPage() {
 
             setRecoveryPhase(mealPhase)
 
+            // 타겟 날짜 설정 (URL 파라미터 or 오늘)
+            const targetDate = dateParam || getTodayDate()
+            const isToday = targetDate === getTodayDate()
+
             let hasData = false
+            setMeals([]) // 초기화
 
             // 1. 로컬 캐시 확인 (오늘 날짜인 경우에만)
-            console.log('1️⃣ 데이터 조회 시작')
-
-            // 오늘 날짜인 경우 로컬 스토리지 우선 확인
-            const cachedPlan = getTodayMealPlan(savedProfile.id)
-            if (cachedPlan && isMealPlanValid(cachedPlan, mealPhase)) {
-                console.log('✅ 로컬 캐시 식단 사용')
-                setMeals(cachedPlan.meals)
-                setLoading(false)
-                hasData = true
+            if (isToday) {
+                console.log('1️⃣ 데이터 조회 시작')
+                const cachedPlan = getTodayMealPlan(savedProfile.id)
+                if (cachedPlan && isMealPlanValid(cachedPlan, mealPhase, targetDate)) {
+                    console.log('✅ 로컬 캐시 식단 사용')
+                    setMeals(cachedPlan.meals)
+                    setLoading(false)
+                    hasData = true
+                }
             }
 
             // 2. DB 조회 (캐시 없거나 날짜가 다른 경우)
             if (!hasData) {
                 try {
-                    console.log('2️⃣ DB에서 식단 조회 중...')
-                    const dbPlan = await fetchMealPlan(savedProfile.id)
+                    console.log(`2️⃣ DB에서 식단 조회 중... (${targetDate})`)
+                    const dbPlan = await fetchMealPlan(savedProfile.id, targetDate)
 
-                    if (dbPlan && isMealPlanValid(dbPlan, mealPhase)) {
+                    if (dbPlan && isMealPlanValid(dbPlan, mealPhase, targetDate)) {
                         console.log('✅ DB 데이터 수신 - UI 업데이트')
                         setMeals(dbPlan.meals)
                         setLoading(false)
@@ -115,16 +122,21 @@ export default function MealPlanPage() {
                 }
             }
 
-            // 3. 데이터 없음: LLM 생성 (오늘 날짜인 경우에만 자동 생성할지 고민, 일단 자동 생성)
+            // 3. 데이터 없음: LLM 생성 (오늘 날짜인 경우에만 자동 생성)
             if (!hasData) {
-                console.log('3️⃣ 데이터 없음 - LLM으로 새 식단 생성')
-                await generateMeals(savedProfile.id, mealPhase, savedProfile.surgery_type)
+                if (isToday) {
+                    console.log('3️⃣ 데이터 없음 - LLM으로 새 식단 생성')
+                    await generateMeals(savedProfile.id, mealPhase, savedProfile.surgery_type)
+                } else {
+                    console.log('3️⃣ 데이터 없음 - 과거/미래 날짜이므로 생성하지 않음')
+                    setMeals([]) // 빈 식단
+                    setLoading(false)
+                }
             }
         } catch (e) {
             console.error('Error:', e)
+            setLoading(false)
         }
-
-        setLoading(false)
     }
 
     const [error, setError] = useState<string | null>(null)
@@ -217,13 +229,22 @@ export default function MealPlanPage() {
     )
 
     const MealCard = ({ meal, title }: { meal?: Meal; title: string }) => {
-        if (!meal)
+        if (!meal) {
+            if (generating || loading) {
+                return (
+                    <Card className="mb-4 bg-gray-50 border-dashed border-2 p-6">
+                        <h3 className="text-xl font-bold mb-2 text-gray-500">{title}</h3>
+                        <p className="text-gray-600 font-medium">식단을 생성 중입니다...</p>
+                    </Card>
+                )
+            }
             return (
-                <Card className="mb-4 bg-gray-50 border-dashed border-2 p-6">
-                    <h3 className="text-xl font-bold mb-2 text-gray-500">{title}</h3>
-                    <p className="text-gray-600 font-medium">식단을 생성 중입니다...</p>
+                <Card className="mb-4 bg-gray-50 border-dashed border-2 p-6 opacity-60">
+                    <h3 className="text-xl font-bold mb-2 text-gray-400">{title}</h3>
+                    <p className="text-gray-400 font-medium">등록된 식단이 없습니다.</p>
                 </Card>
             )
+        }
 
         return (
             <Card className="mb-4 p-4 sm:p-6">
@@ -302,61 +323,67 @@ export default function MealPlanPage() {
                 {/* Header with Title and Actions */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                        {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 식단
+                        {dateParam ? new Date(dateParam).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 식단
                     </h1>
 
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <Button
-                            variant="outline"
-                            onClick={() => router.push('/meal-plan/calendar')}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-gray-900 border-gray-200 hover:bg-gray-50 h-9 px-4 text-sm rounded-full shadow-sm"
-                        >
-                            <Calendar size={14} />
-                            달력보기
-                        </Button>
+                        {searchParams.get('source') !== 'calendar' && (
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push('/meal-plan/calendar')}
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-gray-900 border-gray-200 hover:bg-gray-50 h-9 px-4 text-sm rounded-full shadow-sm"
+                            >
+                                <Calendar size={14} />
+                                달력보기
+                            </Button>
+                        )}
 
-                        <Button
-                            onClick={() => setShowChat(!showChat)}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white border border-transparent h-9 px-4 text-sm rounded-full shadow-sm"
-                        >
-                            <MessageSquare size={14} />
-                            {showChat ? '대화 닫기' : 'AI와 대화하기'}
-                        </Button>
-
-                        {/* Regenerate Button with Confirmation Dialog */}
-                        <Dialog open={isRegenOpen} onOpenChange={setIsRegenOpen}>
-                            <DialogTrigger asChild>
+                        {(dateParam === null || dateParam === getTodayDate()) && (
+                            <>
                                 <Button
-                                    variant="outline"
-                                    disabled={generating}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-gray-900 border-gray-200 hover:bg-gray-50 h-9 px-4 text-sm rounded-full shadow-sm"
+                                    onClick={() => setShowChat(!showChat)}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black hover:bg-gray-800 text-white border border-transparent h-9 px-4 text-sm rounded-full shadow-sm"
                                 >
-                                    <RefreshCw className={generating ? 'animate-spin' : ''} size={14} />
-                                    {generating ? '생성 중...' : '식단 다시 추천받기'}
+                                    <MessageSquare size={14} />
+                                    {showChat ? '대화 닫기' : 'AI와 대화하기'}
                                 </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md rounded-2xl p-6">
-                                <DialogHeader className="text-left space-y-2">
-                                    <DialogTitle className="text-xl font-bold leading-relaxed whitespace-pre-wrap">
-                                        {'해당 날짜의 식단을\n다시 추천 받으시겠어요?'}
-                                    </DialogTitle>
-                                    <DialogDescription className="text-gray-500 text-sm">
-                                        기존에 있는 맞춤 추천 식단은 삭제돼요.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter className="mt-6 sm:justify-center">
-                                    <Button
-                                        onClick={() => {
-                                            setIsRegenOpen(false)
-                                            handleRegenerate()
-                                        }}
-                                        className="w-full bg-black hover:bg-gray-800 text-white font-bold py-6 rounded-xl text-base"
-                                    >
-                                        다시 추천받기
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+
+                                {/* Regenerate Button with Confirmation Dialog */}
+                                <Dialog open={isRegenOpen} onOpenChange={setIsRegenOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            disabled={generating}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white text-gray-900 border-gray-200 hover:bg-gray-50 h-9 px-4 text-sm rounded-full shadow-sm"
+                                        >
+                                            <RefreshCw className={generating ? 'animate-spin' : ''} size={14} />
+                                            {generating ? '생성 중...' : '식단 다시 추천받기'}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md rounded-2xl p-6">
+                                        <DialogHeader className="text-left space-y-2">
+                                            <DialogTitle className="text-xl font-bold leading-relaxed whitespace-pre-wrap">
+                                                {'해당 날짜의 식단을\n다시 추천 받으시겠어요?'}
+                                            </DialogTitle>
+                                            <DialogDescription className="text-gray-500 text-sm">
+                                                기존에 있는 맞춤 추천 식단은 삭제돼요.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="mt-6 sm:justify-center">
+                                            <Button
+                                                onClick={() => {
+                                                    setIsRegenOpen(false)
+                                                    handleRegenerate()
+                                                }}
+                                                className="w-full bg-black hover:bg-gray-800 text-white font-bold py-6 rounded-xl text-base"
+                                            >
+                                                다시 추천받기
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -418,5 +445,18 @@ export default function MealPlanPage() {
                 </div>
             </div>
         </div>
+    )
+
+}
+
+export default function MealPlanPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="animate-spin text-blue-600" size={48} />
+            </div>
+        }>
+            <MealPlanContent />
+        </Suspense>
     )
 }
