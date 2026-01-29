@@ -12,11 +12,24 @@ import { Label } from "@/components/ui/label";
 import { saveSymptomLog } from "@/lib/services/log-service";
 import { getProfile } from "@/lib/local-storage";
 
+import type {
+  MealIntakeStatus,
+  PostMealSymptom,
+  BodyTemperatureStatus,
+  BowelStatus,
+  MostDifficultAspect,
+  AbnormalSymptom
+} from '@/lib/types/symptom.types';
+
 type FormData = {
   painLevel: number;
   energyLevel: number;
-  digestiveStatus: "good" | "moderate" | "bad" | "none";
-  notes: string;
+  mealIntake: MealIntakeStatus;
+  postMealSymptom: PostMealSymptom;
+  bodyTemperature: BodyTemperatureStatus;
+  bowelStatus: BowelStatus;
+  mostDifficult: MostDifficultAspect;
+  abnormalSymptoms: AbnormalSymptom[];
 };
 
 export default function SymptomCheckPage() {
@@ -27,8 +40,12 @@ export default function SymptomCheckPage() {
     defaultValues: {
       painLevel: 0,
       energyLevel: 5,
-      digestiveStatus: "good",
-      notes: "",
+      mealIntake: "good",
+      postMealSymptom: "none",
+      bodyTemperature: "normal",
+      bowelStatus: "normal",
+      mostDifficult: "none",
+      abnormalSymptoms: [],
     },
   });
 
@@ -137,7 +154,7 @@ export default function SymptomCheckPage() {
                       <input
                         type="radio"
                         value={status}
-                        {...register("digestiveStatus")}
+                        {...register("mealIntake")}
                         className="accent-blue-600"
                       />
                       <span className="text-base text-gray-700 font-semibold whitespace-pre-line">
@@ -155,7 +172,7 @@ export default function SymptomCheckPage() {
                   식사 후 증상
                 </Label>
                 <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "moderate2", "bad", "none"].map(
+                  {["bloating", "distension", "heartburn", "nausea", "none"].map(
                     (status) => (
                       <label
                         key={status}
@@ -164,16 +181,15 @@ export default function SymptomCheckPage() {
                         <input
                           type="radio"
                           value={status}
-                          {...register("digestiveStatus")}
+                          {...register("postMealSymptom")}
                           className="accent-blue-600"
                         />
                         <span className="text-base text-gray-700 font-semibold whitespace-pre-line">
-                          {status === "none" && "더부룩함"}
-                          {status === "bad" && "복부 팽만"}
-                          {status === "moderate" && "속쓰림"}
-                          {/* 여기 수정 필요 */}
-                          {status === "moderate2" && "메스꺼움"}
-                          {status === "good" && "없음"}
+                          {status === "bloating" && "더부룩함"}
+                          {status === "distension" && "복부 팽만"}
+                          {status === "heartburn" && "속쓰림"}
+                          {status === "nausea" && "메스꺼움"}
+                          {status === "none" && "없음"}
                         </span>
                       </label>
                     ),
@@ -185,7 +201,7 @@ export default function SymptomCheckPage() {
                   체온 이상 여부
                 </Label>
                 <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "bad"].map((status) => (
+                  {["normal", "mild_fever", "high_fever"].map((status) => (
                     <label
                       key={status}
                       className="flex items-center space-x-4 border p-4 rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
@@ -193,13 +209,13 @@ export default function SymptomCheckPage() {
                       <input
                         type="radio"
                         value={status}
-                        {...register("digestiveStatus")}
+                        {...register("bodyTemperature")}
                         className="accent-blue-600"
                       />
                       <span className="text-base text-gray-700 font-semibold">
-                        {status === "good" && "정상"}
-                        {status === "moderate" && "미열"}
-                        {status === "bad" && "38도 이상"}
+                        {status === "normal" && "정상"}
+                        {status === "mild_fever" && "미열"}
+                        {status === "high_fever" && "38도 이상"}
                       </span>
                     </label>
                   ))}
@@ -210,7 +226,7 @@ export default function SymptomCheckPage() {
                   배변 상태
                 </Label>
                 <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "bad", "none"].map((status) => (
+                  {["normal", "constipation", "diarrhea", "none"].map((status) => (
                     <label
                       key={status}
                       className="flex items-center space-x-4 border p-4 rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
@@ -218,13 +234,13 @@ export default function SymptomCheckPage() {
                       <input
                         type="radio"
                         value={status}
-                        {...register("digestiveStatus")}
+                        {...register("bowelStatus")}
                         className="accent-blue-600"
                       />
                       <span className="text-base text-gray-700 font-semibold">
-                        {status === "good" && "정상"}
-                        {status === "moderate" && "변비"}
-                        {status === "bad" && "설사"}
+                        {status === "normal" && "정상"}
+                        {status === "constipation" && "변비"}
+                        {status === "diarrhea" && "설사"}
                         {status === "none" && "아직 없음"}
                       </span>
                     </label>
@@ -236,7 +252,7 @@ export default function SymptomCheckPage() {
                   오늘 가장 힘들었던 점
                 </Label>
                 <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "moderate2", "bad", "none"].map(
+                  {["meal", "pain", "sleep", "activity", "none"].map(
                     (status) => (
                       <label
                         key={status}
@@ -245,45 +261,14 @@ export default function SymptomCheckPage() {
                         <input
                           type="radio"
                           value={status}
-                          {...register("digestiveStatus")}
+                          {...register("mostDifficult")}
                           className="accent-blue-600"
                         />
                         <span className="text-base text-gray-700 font-semibold">
-                          {status === "good" && "식사"}
-                          {status === "moderate" && "통증"}
-                          {/* 여기 수정 필요 */}
-                          {status === "moderate2" && "수면"}
-                          {status === "bad" && "활동"}
-                          {status === "none" && "없음"}
-                        </span>
-                      </label>
-                    ),
-                  )}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <Label className="text-gray-900 text-xl font-bold">
-                  오늘 가장 힘들었던 점
-                </Label>
-                <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "moderate2", "bad", "none"].map(
-                    (status) => (
-                      <label
-                        key={status}
-                        className="flex items-center space-x-4 border p-4 rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
-                      >
-                        <input
-                          type="radio"
-                          value={status}
-                          {...register("digestiveStatus")}
-                          className="accent-blue-600"
-                        />
-                        <span className="text-base text-gray-700 font-semibold">
-                          {status === "good" && "식사"}
-                          {status === "moderate" && "통증"}
-                          {/* 여기 수정 필요 */}
-                          {status === "moderate2" && "수면"}
-                          {status === "bad" && "활동"}
+                          {status === "meal" && "식사"}
+                          {status === "pain" && "통증"}
+                          {status === "sleep" && "수면"}
+                          {status === "activity" && "활동"}
                           {status === "none" && "없음"}
                         </span>
                       </label>
@@ -295,43 +280,73 @@ export default function SymptomCheckPage() {
                 <Label className="text-gray-900 text-xl font-bold">
                   특이 증상 체크 (복수 선택)
                 </Label>
-                <div className="grid grid-cols-2 gap-2 pt-4">
-                  {["good", "moderate", "moderate2", "bad", "none"].map(
-                    (status) => (
-                      <label
-                        key={status}
-                        className="flex items-center space-x-4 border p-4 rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
-                      >
-                        <input
-                          type="radio"
-                          value={status}
-                          {...register("digestiveStatus")}
-                          className="accent-blue-600"
-                        />
-                        <span className="text-base text-gray-700 font-semibold whitespace-pre-line">
-                          {status === "good" && "상처 통증\n증가"}
-                          {status === "moderate" && "상처 부위\n발적 / 열감"}
-                          {/* 여기 수정 필요 */}
-                          {status === "moderate2" && "심한 복부\n통증"}
-                          {status === "bad" && "구토"}
-                          {status === "none" && "없음"}
-                        </span>
-                      </label>
-                    ),
+                <Controller
+                  name="abnormalSymptoms"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <div className="grid grid-cols-2 gap-2 pt-4">
+                      {[
+                        "wound_pain_increase",
+                        "wound_redness",
+                        "severe_abdominal_pain",
+                        "vomiting",
+                        "none",
+                      ].map((symptom) => {
+                        const checked =
+                          value?.includes(symptom as AbnormalSymptom) || false;
+                        return (
+                          <label
+                            key={symptom}
+                            className="flex items-center space-x-4 border p-4 rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                const currentSymptoms = value || [];
+
+                                if (symptom === "none") {
+                                  // "없음" 선택 시 다른 모든 증상 해제
+                                  onChange(isChecked ? ["none"] : []);
+                                } else {
+                                  // 다른 증상 선택 시 "없음" 제거
+                                  const filtered = currentSymptoms.filter(
+                                    (s) => s !== "none",
+                                  );
+                                  if (isChecked) {
+                                    onChange([
+                                      ...filtered,
+                                      symptom as AbnormalSymptom,
+                                    ]);
+                                  } else {
+                                    onChange(
+                                      filtered.filter((s) => s !== symptom),
+                                    );
+                                  }
+                                }
+                              }}
+                              className="accent-blue-600"
+                            />
+                            <span className="text-base text-gray-700 font-semibold whitespace-pre-line text-left">
+                              {symptom === "wound_pain_increase" &&
+                                "상처 통증\n증가"}
+                              {symptom === "wound_redness" &&
+                                "상처 부위\n발적 / 열감"}
+                              {symptom === "severe_abdominal_pain" &&
+                                "심한 복부\n통증"}
+                              {symptom === "vomiting" && "구토"}
+                              {symptom === "none" && "없음"}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   )}
-                </div>
+                />
               </div>
 
-              {/* <div className="space-y-2">
-                <Label className="text-gray-900 text-base font-bold">
-                  기타 메모
-                </Label>
-                <textarea
-                  {...register("notes")}
-                  className="w-full p-2 border rounded-md h-24 text-base focus:ring-2 focus:ring-blue-500 outline-none placeholder:text-gray-500 text-gray-900 font-medium"
-                  placeholder="특이사항이 있다면 기록해주세요."
-                />
-              </div> */}
+
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "저장 중..." : "저장하기"}

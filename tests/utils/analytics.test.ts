@@ -7,15 +7,42 @@ describe('Weekly Analytics', () => {
         const mockLogs: DailyLogEntry[] = [
             {
                 profile_id: '1', log_date: '2026-05-01',
-                symptoms: { painLevel: 5, energyLevel: 5, digestiveStatus: 'moderate' }
+                symptoms: {
+                    painLevel: 5,
+                    energyLevel: 5,
+                    mealIntake: 'moderate',
+                    postMealSymptom: 'none',
+                    bodyTemperature: 'normal',
+                    bowelStatus: 'normal',
+                    mostDifficult: 'none',
+                    abnormalSymptoms: ['none']
+                }
             },
             {
                 profile_id: '1', log_date: '2026-05-02',
-                symptoms: { painLevel: 4, energyLevel: 6, digestiveStatus: 'good' }
+                symptoms: {
+                    painLevel: 4,
+                    energyLevel: 6,
+                    mealIntake: 'good',
+                    postMealSymptom: 'none',
+                    bodyTemperature: 'normal',
+                    bowelStatus: 'normal',
+                    mostDifficult: 'none',
+                    abnormalSymptoms: ['none']
+                }
             },
             {
                 profile_id: '1', log_date: '2026-05-03',
-                symptoms: { painLevel: 3, energyLevel: 7, digestiveStatus: 'good' }
+                symptoms: {
+                    painLevel: 3,
+                    energyLevel: 7,
+                    mealIntake: 'good',
+                    postMealSymptom: 'none',
+                    bodyTemperature: 'normal',
+                    bowelStatus: 'normal',
+                    mostDifficult: 'none',
+                    abnormalSymptoms: ['none']
+                }
             }
         ]
 
