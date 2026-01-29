@@ -5,10 +5,13 @@ import { useOnboardingStore } from "@/lib/stores/onboarding-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send, User, Bot, Loader2, CheckCircle2 } from "lucide-react";
-import type { Value } from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import Calendar from "react-calendar";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+
+// react-calendar v6에서 Value 타입이 루트에서 export되지 않는 문제를 해결하기 위해 로컬 타입 정의
+type ValuePiece = Date | null;
+type Value = ValuePiece | [ValuePiece, ValuePiece];
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -184,14 +187,12 @@ export function OnboardingChat() {
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`flex max-w-[80%] items-start gap-3 ${
-                message.role === "user" ? "flex-row-reverse" : ""
-              }`}
+              className={`flex max-w-[80%] items-start gap-3 ${message.role === "user" ? "flex-row-reverse" : ""
+                }`}
             >
               <div
-                className={`p-2 rounded-full ${
-                  message.role === "user" ? "bg-blue-100" : "bg-white border"
-                }`}
+                className={`p-2 rounded-full ${message.role === "user" ? "bg-blue-100" : "bg-white border"
+                  }`}
               >
                 {message.role === "user" ? (
                   <User size={20} className="text-blue-600" />
@@ -200,11 +201,10 @@ export function OnboardingChat() {
                 )}
               </div>
               <div
-                className={`p-4 rounded-2xl text-md leading-relaxed ${
-                  message.role === "user"
+                className={`p-4 rounded-2xl text-md leading-relaxed ${message.role === "user"
                     ? "bg-blue-600 text-white rounded-tr-none"
                     : "bg-white text-gray-800 rounded-tl-none border"
-                }`}
+                  }`}
               >
                 {message.content}
               </div>
