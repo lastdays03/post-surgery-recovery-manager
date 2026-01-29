@@ -25,10 +25,15 @@ const onboardingFormSchema = z.object({
 
     // Health Info
     digestiveCapacity: z.string().min(1, '소화 기능을 선택해주세요.'),
-    comorbidities: z.string().optional(),
+    comorbidities: z.array(z.string()).default([]),
+    otherComorbidity: z.string().optional(),
 })
 
 type OnboardingFormData = z.infer<typeof onboardingFormSchema>
+
+const COMORBIDITIES_OPTIONS = [
+    '당뇨', '고혈압', '심장질환', '신장질환', '간질환'
+]
 
 export function OnboardingForm() {
     const router = useRouter()
@@ -38,23 +43,45 @@ export function OnboardingForm() {
     const form = useForm<any>({
         resolver: zodResolver(onboardingFormSchema),
         defaultValues: {
-            age: formData.age ? String(formData.age) : '',
+            age: formData.age ? String(formData.age) : '', // Back to String() to match input type
             gender: formData.gender,
-            height: formData.height ? String(formData.height) : '',
-            weight: formData.weight ? String(formData.weight) : '',
+            height: formData.height ? String(formData.height) : '', // Back to String()
+            weight: formData.weight ? String(formData.weight) : '', // Back to String()
             digestiveCapacity: '100',
-            comorbidities: '',
+            comorbidities: [],
+            otherComorbidity: '',
         }
     })
+
+    const toggleComorbidity = (value: string) => {
+        const current = (form.getValues('comorbidities') || []) as string[]
+        let updated: string[] = []
+
+        if (value === 'none') {
+            updated = current.includes('none') ? [] : ['none']
+            if (updated.includes('none')) {
+                form.setValue('otherComorbidity', '') // Clear other input if 'none' is selected
+            }
+        } else {
+            if (current.includes('none')) {
+                updated = [value]
+            } else {
+                updated = current.includes(value)
+                    ? current.filter((item: string) => item !== value)
+                    : [...current, value]
+            }
+        }
+        form.setValue('comorbidities', updated, { shouldDirty: true, shouldValidate: true }) // Force validation update
+    }
 
     const onSubmit = async (data: OnboardingFormData) => {
         setIsSubmitting(true)
         try {
             updateFormData({
-                age: data.age,
+                age: Number(data.age),
                 gender: data.gender,
-                height: data.height,
-                weight: data.weight,
+                height: Number(data.height),
+                weight: Number(data.weight),
                 // digestiveCapacity and comorbidities are not in OnboardingState yet, 
                 // assuming we might add them or use 'healthStatus' field later.
                 // For now, only updating what's in schema.
@@ -66,15 +93,21 @@ export function OnboardingForm() {
                 '50': 'poor'
             }
 
+            // Construct final comorbidities list
+            let finalComorbidities = data.comorbidities.filter(c => c !== 'none' && c !== 'other')
+            if (data.comorbidities.includes('other') && data.otherComorbidity) {
+                finalComorbidities.push(data.otherComorbidity.trim())
+            }
+
             const profileData = {
                 surgery_type: formData.surgery_type || 'etc',
                 surgery_date: formData.surgery_date || new Date().toISOString(),
-                age: data.age,
+                age: Number(data.age),
                 gender: data.gender,
-                height: data.height,
-                weight: data.weight,
+                height: Number(data.height),
+                weight: Number(data.weight),
                 digestive_capacity: digestive_capacity_map[data.digestiveCapacity] || 'moderate',
-                comorbidities: data.comorbidities ? data.comorbidities.split(',').map(s => s.trim()) : [],
+                comorbidities: finalComorbidities,
             }
 
             console.log('Submitting profile:', profileData)
@@ -96,6 +129,10 @@ export function OnboardingForm() {
             setIsSubmitting(false)
         }
     }
+
+    // Prepare default values for age/height/weight inputs as strings to avoid uncontrolled/controlled warnings if needed,
+    // but react-hook-form handles number inputs well with coerce.
+    // However, keeping standard input props.
 
     return (
         <Card className="max-w-xl mx-auto shadow-lg">
@@ -185,12 +222,63 @@ export function OnboardingForm() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="comorbidities">기저 질환 (선택 사항)</Label>
-                            <Input id="comorbidities" placeholder="예: 고혈압, 당뇨 (없으면 비워두세요)" {...form.register('comorbidities')} />
+                            <Label>기저 질환 (복수 선택 가능)</Label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {COMORBIDITIES_OPTIONS.map((option) => (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        onClick={() => toggleComorbidity(option)}
+                                        className={cn(
+                                            "py-3 px-2 rounded-lg border text-sm font-medium transition-all break-keep",
+                                            form.watch('comorbidities').includes(option)
+                                                ? "bg-blue-50 border-blue-600 text-blue-700 font-semibold"
+                                                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                                        )}
+                                    >
+                                        {option}
+                                    </button>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => toggleComorbidity('none')}
+                                    className={cn(
+                                        "py-3 px-2 rounded-lg border text-sm font-medium transition-all",
+                                        form.watch('comorbidities').includes('none')
+                                            ? "bg-gray-100 border-gray-500 text-gray-900 font-semibold"
+                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                                    )}
+                                >
+                                    없음
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleComorbidity('other')}
+                                    className={cn(
+                                        "py-3 px-2 rounded-lg border text-sm font-medium transition-all",
+                                        form.watch('comorbidities').includes('other')
+                                            ? "bg-blue-50 border-blue-600 text-blue-700 font-semibold"
+                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                                    )}
+                                >
+                                    기타
+                                </button>
+                            </div>
+
+                            {/* Other Input Field */}
+                            {form.watch('comorbidities').includes('other') && (
+                                <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <Input
+                                        placeholder="기저질환을 직접 입력해주세요"
+                                        {...form.register('otherComorbidity')}
+                                        className="bg-gray-50"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-6 text-lg rounded-xl" disabled={isSubmitting}>
                         {isSubmitting ? '저장 중...' : '완료 및 가이드 시작'}
                     </Button>
                 </form>
