@@ -21,6 +21,16 @@ import {
 } from "recharts";
 import { usePdfReport } from "@/hooks/use-pdf-report";
 
+const TEMP_CHART_DATA = [
+  { date: "2026-05-20", pain: 4, energy: 6 },
+  { date: "2026-05-21", pain: 3, energy: 7 },
+  { date: "2026-05-22", pain: 5, energy: 5 },
+  { date: "2026-05-23", pain: 2, energy: 8 },
+  { date: "2026-05-24", pain: 3, energy: 7 },
+  { date: "2026-05-25", pain: 2, energy: 9 },
+  { date: "2026-05-26", pain: 1, energy: 9 },
+];
+
 export default function WeeklyReportPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -115,7 +125,7 @@ export default function WeeklyReportPage() {
               />
               식사 섭취 :{" "}
               <span className="font-bold">
-                62%평균 62% (전주 대비{" "}
+                평균 62% (전주 대비{" "}
                 <span className="text-blue-600 font-semibold">+12%</span>)
               </span>
             </div>
@@ -148,7 +158,7 @@ export default function WeeklyReportPage() {
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={report.dailyScores}
+                  data={TEMP_CHART_DATA}
                   margin={{ top: 5, right: 5, bottom: 5, left: -25 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -175,14 +185,14 @@ export default function WeeklyReportPage() {
                   <Line
                     type="monotone"
                     dataKey="pain"
-                    name="통증"
+                    name="소화위장상태"
                     stroke="#ef4444"
                     strokeWidth={2}
                   />
                   <Line
                     type="monotone"
                     dataKey="energy"
-                    name="기력"
+                    name="음식첩취율"
                     stroke="#3b82f6"
                     strokeWidth={2}
                   />
