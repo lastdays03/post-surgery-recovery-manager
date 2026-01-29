@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { pdf } from '@react-pdf/renderer'
 import { WeeklyReportTemplate } from '@/components/reports/pdf/WeeklyReportTemplate'
+import { MealCalendarTemplate } from '@/components/reports/pdf/MealCalendarTemplate'
 import { WeeklyReport } from '@/lib/types/report.types'
 import { saveAs } from 'file-saver'
 
@@ -29,8 +30,28 @@ export function usePdfReport() {
         }
     }
 
+    const downloadCalendarPdf = async (params: {
+        year: number
+        month: number
+        calendarGrid: any[][]
+        mealStats: any
+    }) => {
+        setIsGenerating(true)
+        try {
+            const doc = <MealCalendarTemplate {...params} />
+            const blob = await pdf(doc).toBlob()
+            saveAs(blob, `meal_calendar_${params.year}_${params.month}.pdf`)
+        } catch (error) {
+            console.error('Failed to generate Calendar PDF:', error)
+            alert('PDF 생성 중 오류가 발생했습니다.')
+        } finally {
+            setIsGenerating(false)
+        }
+    }
+
     return {
         downloadWeeklyReport,
+        downloadCalendarPdf,
         isGenerating
     }
 }
