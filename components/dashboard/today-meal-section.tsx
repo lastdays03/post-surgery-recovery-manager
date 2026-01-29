@@ -73,7 +73,7 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
     }
 
     // Find snack (assuming the first snack found)
-    const snackMeal = meals.find(m => m.mealTime === 'snack')
+    const snackMeal = meals.find(m => m.mealTime.includes('snack'))
     const hasSnack = !!snackMeal
 
     const formattedDate = format(new Date(), 'yyyy년 M월 d일 EEEE', { locale: ko })
@@ -158,10 +158,10 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
                                         }}
                                     />
                                 </CarouselItem>
-                                {meals.filter(m => m.mealTime === 'snack').map((snack, index) => (
+                                {meals.filter(m => m.mealTime.includes('snack')).map((snack, index) => (
                                     <CarouselItem key={snack.id || `snack-${index}`} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
                                         <MealCard
-                                            title={meals.filter(m => m.mealTime === 'snack').length > 1 ? `간식 ${index + 1}` : "간식"}
+                                            title={meals.filter(m => m.mealTime.includes('snack')).length > 1 ? `간식 ${index + 1}` : "간식"}
                                             meal={snack}
                                             simple
                                             onClick={() => setSelectedMeal({ meal: snack, mealTime: '간식' })}

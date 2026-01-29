@@ -28,6 +28,15 @@ export class LLMService {
         const createProvider = (name: string): LLMClient | null => {
             try {
                 switch (name) {
+                    case 'deepseek':
+                        if (process.env.DEEPSEEK_API_KEY) {
+                            return new OpenAIProvider(
+                                process.env.DEEPSEEK_API_KEY,
+                                process.env.DEEPSEEK_MODEL_NAME || 'deepseek-chat',
+                                process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
+                            )
+                        }
+                        break
                     case 'openai':
                         if (process.env.OPENAI_API_KEY) {
                             return new OpenAIProvider(
@@ -63,13 +72,10 @@ export class LLMService {
         const preferredClient = createProvider(preferredProviderName)
         if (preferredClient) {
             providers.push({ name: preferredProviderName, client: preferredClient })
-        } else if (preferredProviderName !== 'openai' && preferredProviderName !== 'groq' && preferredProviderName !== 'google') {
-            // If preferred is invalid or has no key, warning logged above? no, createProvider returns null
-            // Try to find ANY available provider if preferred failed
         }
 
         // 2. Add backups (fallback chain)
-        const candidates = ['openai', 'groq', 'google']
+        const candidates = ['deepseek', 'openai', 'groq', 'google']
         for (const candidate of candidates) {
             if (candidate !== preferredProviderName) {
                 const client = createProvider(candidate)
@@ -85,8 +91,6 @@ export class LLMService {
 
         console.log(`🔌 Initializing SmartFallbackProvider with chain: ${providers.map(p => p.name).join(' -> ')}`)
 
-        // If only one provider, just return it to save overhead (though wrapper overhead is minimal)
-        // But let's wrap it anyway for consistency if we want log/interceptor logic later
         this.instance = new SmartFallbackProvider(providers)
 
         return this.instance

@@ -73,7 +73,8 @@ export async function processOnboardingChat(
         const response = await client.chat({
             messages: messages as any,
             temperature: 0.3,
-            jsonMode: true
+            jsonMode: true,
+            model: 'gpt-5-mini',
         })
 
         const result = JSON.parse(response.content)

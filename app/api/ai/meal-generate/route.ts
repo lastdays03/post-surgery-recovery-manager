@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDailyMeals, type MealGenerationRequest } from '@/lib/ai/meal-ai'
 import { saveMealPlan } from '@/lib/services/meal-service'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,6 +16,19 @@ export async function POST(request: NextRequest) {
         }
 
         // 식단 생성
+        // DB에서 사용자 프로필 조회 (advanced_metrics 포함)
+        const { data: userProfile } = await supabaseAdmin
+            .from('user_profiles')
+            .select('*')
+            .eq('id', body.userId)
+            .single()
+
+        const profileData = userProfile as any;
+
+        if (profileData && profileData.advanced_metrics) {
+            body.advancedMetrics = profileData.advanced_metrics
+        }
+
         const meals = await generateDailyMeals(body)
 
         // 로컬 스토리지에 저장 (클라이언트에서 처리)

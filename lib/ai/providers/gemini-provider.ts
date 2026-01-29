@@ -12,7 +12,7 @@ export class GeminiProvider implements LLMClient {
 
     async chat(request: LLMRequest): Promise<LLMResponse> {
         const model = this.client.getGenerativeModel({
-            model: this.modelName,
+            model: request.model || this.modelName,
             generationConfig: {
                 temperature: request.temperature,
                 maxOutputTokens: request.maxTokens,

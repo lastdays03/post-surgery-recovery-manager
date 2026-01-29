@@ -1,3 +1,4 @@
+import type { AdvancedMetrics } from '@/lib/actions/profile-actions'
 import { LLMService } from './llm-service'
 import type { Meal } from '@/lib/types/meal.types'
 
@@ -14,6 +15,8 @@ export interface MealGenerationRequest {
     }
     dietaryRestrictions?: string[]
     surgeryType?: string
+    advancedMetrics?: AdvancedMetrics
+    reasoningEffort?: 'low' | 'medium' | 'high'
 }
 
 /**
@@ -105,18 +108,68 @@ export async function generateDailyMeals(request: MealGenerationRequest): Promis
 
     // 프롬프트 구성
     // 프롬프트 구성
+    const espenSummary = `
+<espen_summary_for_prompt>
+[Global Rules]
+- 가능한 한 빠르게 경구 섭취를 시작한다(특별한 금기 없으면 중단하지 않는다).
+- 영양 공급을 하지 않으면 저영양 및 합병증 위험이 증가한다.
+- 모든 수술 환자는 수술 전·후 영양 상태 평가가 필요하다.
+- ERAS 개념에 따라 영양, 혈당 조절, 조기 활동, 근육 보존을 통합 고려한다.
+
+[When to Start Oral Intake]
+- 대부분 환자는 수술 직후 수시간 이내에 맑은 음료 섭취가 가능하다.
+- 식사량/식단 형태는 수술 종류, 위장관 기능 회복, 개인 내성에 맞춰 조절한다.
+
+[Diet Progression]
+- 맑은 유동식 → 부드러운 연식 → 일반식으로 점진 전환한다.
+- 위·대장 수술 환자도 조기 식사 시작이 봉합부 합병증을 증가시키지 않는다.
+
+[Nutrition Risk Criteria (if any is true → at risk)]
+- 최근 6개월 내 체중 10~15% 이상 감소
+- BMI 18.5 미만
+- NRS-2002 점수 3 이상(특히 5 이상은 고위험)
+- 혈청 알부민 30 g/L 미만
+- 근감소증 동반
+→ 영양 위험군이면 더 적극적 영양 개입 및 단백질 강화 우선.
+
+[Route Selection Logic]
+- 경구 섭취 가능 + 필요 열량의 50% 이상 섭취 가능 → 일반식/고단백 식단 + 필요 시 ONS 고려
+- 7일 이상 필요량의 50% 미만 섭취 예상 → 경장영양(EN) 고려
+- EN 불가(장폐색/장허혈/중증 쇼크 등) → 정맥영양(PN) 즉시 고려
+
+[Protein & Key Nutrients]
+- 수술 후 단백질 요구량 증가: 고령자/암/근손실 환자는 고단백 우선.
+- 암 수술 + 저영양이면 면역영양식(아르기닌, 오메가3, 뉴클레오타이드 포함) 고려(수술 전·후 연속 사용 시 효과 증가).
+
+[Contraindications & Cautions]
+- 심한 당뇨 또는 위배출 지연 환자: 탄수화물 음료 사용을 피한다.
+- 심각한 저영양에서 PN 시작 시: 재급식 증후군 예방(단계적 증량, 인·칼륨·마그네슘 모니터/보충, 티아민 보충 고려).
+
+[Monitoring Triggers]
+- 섭취율(%), 체중 변화, 위장관 증상(복부 팽만/구토/설사), 감염·합병증 발생
+→ 악화 시 식단 단계 또는 영양 경로를 재설정한다.
+</espen_summary_for_prompt>`
+
     const systemPrompt = `
-${getRolePrompt()}
+<role>
+당신은 수술 후 회복 환자를 위한 전문 임상영양사 AI입니다.
+환자의 회복 단계, 위장관 기능, 영양 위험도, 개인 선호도를 통합해 하루 식단(아침, 점심, 저녁, 간식 2개)을 제안합니다.
+ERAS 관점(조기 경구섭취, 혈당 관리, 조기 활동, 근육 보존)을 반영합니다.
+</role>
+
+${espenSummary}
 
 ${getGuidelinesPrompt(request.recoveryPhase, guidelines)}
 
 <instructions>
-1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH** (e.g., "name", "mealTime", "ingredients"). NOT Korean.
-2. **Value Language**: properties values MUST be in **Korean** (e.g., "name": "계란죽").
-3. **Format**: Return ONLY a pure JSON Object wrapped in "meals" key. NO markdown code blocks. NO surrounding text.
-4. **Safety**: Do not use forbidden ingredients.
-5. **Menu**: Ensure meals are realistic and easy to prepare.
-6. **Conciseness**: Keep instructions and notes brief to ensure valid JSON output.
+1. **JSON Key Constraint**: All keys in the JSON object MUST be in **ENGLISH**. NOT Korean.
+2. **Value Language**: All property values MUST be in **Korean (Hangul)** only.
+3. **Format**: Return ONLY a pure JSON ID Array. Do NOT wrap it in a root object.
+4. **Safety**: Do not use forbidden ingredients. Ensure texture matches the current phase.
+5. **Menu Practicality**: Meals must be realistic, easy to prepare, and appropriate for early post-op tolerance.
+6. **Phase Compliance**: If the phase is liquid, do not include items requiring chewing or containing pulp/fibrous solids; specify straining/blending when needed.
+7. **Nutrition Fields**: Provide estimated nutrition per item (calories, protein, carbs, fat). Keep estimates plausible.
+8. **Notes**: Include brief tolerance/monitoring notes aligned with ESPEN triggers (섭취율, 체중, 위장관 증상) and any key cautions when relevant.
 </instructions>
 
 ${getLanguageRulesPrompt()}
@@ -146,17 +199,45 @@ Example:
     }
   ]
 }
+
+Required keys per element:
+- id (string)
+- name (string)
+- mealTime (one of: breakfast, lunch, dinner, snack1, snack2)
+- phase (string, MUST be "${request.recoveryPhase}")
+- ingredients (array of strings)
+- instructions (array of strings)
+- prepTime (number; minutes)
+- portionSize (string)
+- nutrition (object: calories, protein, carbs, fat as numbers)
+- notes (string)
 </output_format>
 `
 
+    // Advanced Metrics 포맷팅
+    let advancedMetricsText = '';
+    if (request.advancedMetrics) {
+        const am = request.advancedMetrics;
+        const parts = [];
+        if (am.nrs_2002_score !== undefined) parts.push(`- NRS-2002 Score: ${am.nrs_2002_score} (3점이상은 영양불량 위험)`);
+        if (am.serum_albumin !== undefined) parts.push(`- 혈청 알부민: ${am.serum_albumin} g/dL`);
+        if (am.has_sarcopenia !== undefined) parts.push(`- 근감소증 여부: ${am.has_sarcopenia ? '있음' : '없음'}`);
+        if (am.sga_grade) parts.push(`- SGA 등급: ${am.sga_grade}`);
+        if (am.oral_intake_possible !== undefined) parts.push(`- 경구 섭취 가능: ${am.oral_intake_possible ? '예' : '아니오'}`);
+
+        if (parts.length > 0) {
+            advancedMetricsText = `\n<advanced_metrics>\n${parts.join('\n')}\n</advanced_metrics>`;
+        }
+    }
+
     const userPrompt = `
 <patient_info>
-- 수술 종류: ${request.surgeryType || '일반 수술'}
+- 수술 종류: ${request.surgeryType || '위 절제술'}
 - 회복 단계: ${request.recoveryPhase}
-${request.preferences?.favoriteFood?.length ? `- 선호 음식: ${request.preferences.favoriteFood.join(', ')}\n` : ''}${request.preferences?.avoidIngredients?.length ? `- 기피 재료: ${request.preferences.avoidIngredients.join(', ')}\n` : ''}${request.preferences?.availableIngredients?.length ? `- 보유 식재료: ${request.preferences.availableIngredients.join(', ')}\n` : ''}${request.dietaryRestrictions?.length ? `- 식이 제한: ${request.dietaryRestrictions.join(', ')}\n` : ''}
+${request.preferences?.favoriteFood?.length ? `- 선호 음식: ${request.preferences.favoriteFood.join(', ')}\n` : ''}${request.preferences?.avoidIngredients?.length ? `- 기피 재료: ${request.preferences.avoidIngredients.join(', ')}\n` : ''}${request.preferences?.availableIngredients?.length ? `- 보유 식재료: ${request.preferences.availableIngredients.join(', ')}\n` : ''}${request.dietaryRestrictions?.length ? `- 식이 제한: ${request.dietaryRestrictions.join(', ')}\n` : ''}${advancedMetricsText}
 </patient_info>
 
-Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) wrapped in a "meals" key.
+Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) and wrap them in a JSON Object with a single key "meals".
 Use English Keys for JSON structure.
 `
 
@@ -168,12 +249,18 @@ Use English Keys for JSON structure.
             ],
             temperature: 0.7,
             maxTokens: 4096,
-            jsonMode: true,
-            responseFormat: { type: 'json_object' }
+            // jsonMode: true, // 일부 제공업체(DeepSeek 등)에서 호환성 문제가 발생할 수 있어 제거
+            // responseFormat: { type: 'json_object' }
+            reasoningEffort: request.reasoningEffort || 'high'
         })
 
         // 🔍 디버깅: 실제 응답 로깅
         console.log('🔍 LLM 응답 원본:', response.content)
+
+        if (!response.content || !response.content.trim()) {
+            console.error('❌ LLM 응답이 비어있습니다. Usage:', response.usage)
+            throw new Error('AI 모델이 응답을 생성하지 못했습니다. (빈 응답)')
+        }
 
         // JSON 파싱 시도
         let meals: Meal[]
@@ -252,7 +339,9 @@ Use English Keys for JSON structure.
                     '저녁': 'dinner',
                     '간식': 'snack',
                     '간식1': 'snack',
-                    '간식2': 'snack'
+                    '간식2': 'snack',
+                    'snack1': 'snack',
+                    'snack2': 'snack'
                 };
                 // 이미 영어인 경우는 그대로 두고, 한글인 경우 매핑
                 if (timeMap[meal.mealTime]) {

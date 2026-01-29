@@ -9,7 +9,10 @@ import type { Meal } from '@/lib/types/meal.types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MealChat } from '@/components/meal-plan/meal-chat'
-import { RefreshCw, MessageSquare, Loader2, ArrowLeft } from 'lucide-react'
+import { RefreshCw, MessageSquare, Loader2, ArrowLeft, AlertCircle, X } from 'lucide-react'
+
+
+<h1 className="text-3xl sm:text-4xl font-bold mb-2 text-gray-900">오늘의 AI 맞춤 식단</h1>
 import {
     getTodayMealPlan,
     saveMealPlan,
@@ -117,8 +120,11 @@ export default function MealPlanPage() {
         setLoading(false)
     }
 
+    const [error, setError] = useState<string | null>(null)
+
     const generateMeals = async (userId: string, phase: 'liquid' | 'soft' | 'regular', surgeryType?: string) => {
         setGenerating(true)
+        setError(null)
         try {
             const response = await fetch('/api/ai/meal-generate', {
                 method: 'POST',
@@ -142,11 +148,11 @@ export default function MealPlanPage() {
                     console.log('💾 식단을 DB에 저장했습니다')
                 }
             } else {
-                alert(data.error || '식단 생성에 실패했습니다.')
+                setError(data.error || '식단 생성에 실패했습니다.')
             }
         } catch (error) {
             console.error('식단 생성 오류:', error)
-            alert('서버 연결에 실패했습니다.')
+            setError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
             setGenerating(false)
         }
@@ -185,7 +191,7 @@ export default function MealPlanPage() {
     const breakfast = meals.find(m => m.mealTime === 'breakfast')
     const lunch = meals.find(m => m.mealTime === 'lunch')
     const dinner = meals.find(m => m.mealTime === 'dinner')
-    const snacks = meals.filter(m => m.mealTime === 'snack')
+    const snacks = meals.filter(m => m.mealTime.includes('snack'))
 
     // Calculate daily nutrition (안전 처리)
     const dailyNutrition = meals.reduce(
@@ -310,6 +316,18 @@ export default function MealPlanPage() {
                 {showChat && (
                     <div className="mb-8">
                         <MealChat userId={profile.id} currentMeals={meals} onMealsUpdated={handleMealsUpdated} />
+                    </div>
+                )}
+
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle size={20} />
+                            <span>{error}</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-700 hover:bg-red-100 hover:text-red-900 h-8 w-8 p-0">
+                            <X size={16} />
+                        </Button>
                     </div>
                 )}
 

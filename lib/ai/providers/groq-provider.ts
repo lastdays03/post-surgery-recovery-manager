@@ -32,7 +32,7 @@ export class GroqProvider implements LLMClient {
         }))
 
         const completion = await this.client.chat.completions.create({
-            model: this.model,
+            model: request.model || this.model,
             messages: messages as any, // Groq SDK 타입과 범용 인터페이스 간 불일치 해결
             temperature: request.temperature ?? 0.7,
             max_tokens: request.maxTokens ?? 2048,
