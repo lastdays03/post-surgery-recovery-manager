@@ -21,6 +21,16 @@ import {
 } from "recharts";
 import { usePdfReport } from "@/hooks/use-pdf-report";
 
+const TEMP_CHART_DATA = [
+  { date: "2026-05-20", pain: 4, energy: 6 },
+  { date: "2026-05-21", pain: 3, energy: 7 },
+  { date: "2026-05-22", pain: 5, energy: 5 },
+  { date: "2026-05-23", pain: 2, energy: 8 },
+  { date: "2026-05-24", pain: 3, energy: 7 },
+  { date: "2026-05-25", pain: 2, energy: 9 },
+  { date: "2026-05-26", pain: 1, energy: 9 },
+];
+
 export default function WeeklyReportPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -148,7 +158,7 @@ export default function WeeklyReportPage() {
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={report.dailyScores}
+                  data={TEMP_CHART_DATA}
                   margin={{ top: 5, right: 5, bottom: 5, left: -25 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
