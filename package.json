@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest",
     "index-kb": "DOTENV_CONFIG_PATH=.env.local tsx -r dotenv/config scripts/index-knowledge-base.ts"
   },
   "dependencies": {

@@ -54,12 +54,20 @@ export function getTodayDate(): string {
 export async function fetchMealPlan(userId: string, date?: string): Promise<MealPlan | null> {
     try {
         const targetDate = date || getTodayDate()
+        console.log(`[MealService] Fetching meal plan for User: ${userId}, Date: ${targetDate}`)
+
         const { data: dbData, error } = await (supabase as any)
             .from('meal_plans')
             .select('*')
             .eq('user_id', userId)
             .eq('date', targetDate)
             .single()
+
+        if (dbData) {
+            console.log(`[MealService] Found plan via DB. ID: ${dbData.id}, Phase: ${dbData.recovery_phase}`)
+        } else {
+            console.log(`[MealService] No plan found via DB. Error:`, error)
+        }
 
         const data = dbData as any
 
@@ -123,13 +131,24 @@ export async function fetchTodayMealPlan(userId: string): Promise<MealPlan | nul
 export function getTodayMealPlan(userId: string): MealPlan | null {
     try {
         const cached = localStorage.getItem(MEAL_PLAN_STORAGE_KEY)
-        if (!cached) return null
+        if (!cached) {
+            console.log('[MealService] No local cache found.')
+            return null
+        }
 
         const plan: MealPlan = JSON.parse(cached)
+        const today = getTodayDate()
 
-        if (plan.user_id !== userId) return null
-        if (plan.date !== getTodayDate()) return null
+        if (plan.user_id !== userId) {
+            console.log(`[MealService] Cache ignored: User ID mismatch. (Cache: ${plan.user_id} vs Current: ${userId})`)
+            return null
+        }
+        if (plan.date !== today) {
+            console.log(`[MealService] Cache ignored: Date mismatch. (Cache: ${plan.date} vs Today: ${today})`)
+            return null
+        }
 
+        console.log('[MealService] Local cache hit!')
         return plan
     } catch (error) {
         console.error('로컬 식단 조회 오류:', error)

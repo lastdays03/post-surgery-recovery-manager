@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/lib/supabase-client";
 import { DateRange } from "react-day-picker";
 import Link from "next/link";
+import { calculateRecoveryPhase } from "@/lib/profiling-engine";
 
 interface TodayMealSectionProps {
   userId: string;
@@ -75,16 +76,34 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
       // 사용자 프로필 정보를 가져오기 위해 (recovery_phase 필요)
       const { data: profile } = await (supabase as any)
         .from("user_profiles")
-        .select("recovery_phase, preferences, surgery_type")
+        .select("*") // 모든 필드 조회 (calculateRecoveryPhase 위해)
         .eq("id", userId)
         .single();
+
+      let phase = "soft";
+
+      if (profile) {
+        // 동적으로 회복 단계 계산
+        const calculated = calculateRecoveryPhase({
+          ...profile,
+          surgery_date: profile.surgery_date ? new Date(profile.surgery_date) : new Date(),
+          created_at: new Date(profile.created_at || Date.now()),
+          updated_at: new Date(profile.updated_at || Date.now())
+        });
+
+        if (calculated.name === 'liquid') phase = 'liquid';
+        else if (calculated.name === 'normal') phase = 'regular';
+        else phase = 'soft';
+
+        console.log(`Calculated Phase: ${calculated.name} -> API Phase: ${phase}`);
+      }
 
       const response = await fetch("/api/ai/meal-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          recoveryPhase: profile?.recovery_phase || "soft",
+          recoveryPhase: phase,
           preferences: profile?.preferences,
           surgeryType: profile?.surgery_type,
           dateRange: {

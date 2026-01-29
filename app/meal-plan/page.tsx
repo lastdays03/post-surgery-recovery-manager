@@ -53,10 +53,10 @@ function MealPlanContent() {
 
     useEffect(() => {
         // 날짜가 변경되면 데이터 로드
-        loadProfileAndGenerateMeals()
+        loadProfileAndFetchMeals()
     }, [dateParam])
 
-    const loadProfileAndGenerateMeals = async () => {
+    const loadProfileAndFetchMeals = async () => {
         const savedProfile = getProfile()
 
         if (!savedProfile) {
@@ -122,16 +122,11 @@ function MealPlanContent() {
                 }
             }
 
-            // 3. 데이터 없음: LLM 생성 (오늘 날짜인 경우에만 자동 생성)
+            // 3. 데이터 없음: 자동 생성 로직 제거
             if (!hasData) {
-                if (isToday) {
-                    console.log('3️⃣ 데이터 없음 - LLM으로 새 식단 생성')
-                    await generateMeals(savedProfile.id, mealPhase, savedProfile.surgery_type)
-                } else {
-                    console.log('3️⃣ 데이터 없음 - 과거/미래 날짜이므로 생성하지 않음')
-                    setMeals([]) // 빈 식단
-                    setLoading(false)
-                }
+                console.log('3️⃣ 데이터 없음 - 사용자 생성 대기')
+                setMeals([])
+                setLoading(false)
             }
         } catch (e) {
             console.error('Error:', e)
@@ -304,7 +299,6 @@ function MealPlanContent() {
     return (
         <div className="min-h-screen bg-gray-50 pb-10">
             {/* Header Section */}
-            {/* Header Section */}
             <header className="bg-white border-b sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -323,7 +317,7 @@ function MealPlanContent() {
                 {/* Header with Title and Actions */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
                     <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                        {dateParam ? new Date(dateParam).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 식단
+                        {dateParam ? new Date(dateParam!).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 식단
                     </h1>
 
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -338,7 +332,7 @@ function MealPlanContent() {
                             </Button>
                         )}
 
-                        {(dateParam === null || dateParam >= getTodayDate()) && (
+                        {(dateParam === null || dateParam >= getTodayDate()) && meals.length > 0 && (
                             <>
                                 <Button
                                     onClick={() => setShowChat(!showChat)}
@@ -387,7 +381,7 @@ function MealPlanContent() {
                     </div>
                 </div>
 
-                {showChat && (
+                {showChat && meals.length > 0 && (
                     <div className="mb-8">
                         <MealChat userId={profile.id} currentMeals={meals} onMealsUpdated={handleMealsUpdated} />
                     </div>
@@ -410,43 +404,58 @@ function MealPlanContent() {
                     현재 단계: <span className="font-bold text-blue-600">{currentPhaseName}</span>
                 </p>
 
-                <div className="space-y-6">
-                    {/* Daily Nutrition Summary */}
-                    <Card className="bg-blue-50 border-blue-100 p-4 sm:p-6">
-                        <h2 className="text-xl sm:text-2xl font-bold mb-4 text-blue-900">일일 영양 목표 달성도</h2>
-                        {/* 반응형 그리드: 모바일 1열, 태블릿 2열, 데스크톱 4열 */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-                                <p className="text-4xl sm:text-3xl font-bold text-blue-600">{dailyNutrition.calories}</p>
-                                <p className="text-gray-600 text-sm font-medium mt-1">총 칼로리 (kcal)</p>
-                            </div>
-                            <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-                                <p className="text-4xl sm:text-3xl font-bold text-green-600">{dailyNutrition.protein}g</p>
-                                <p className="text-gray-600 text-sm font-medium mt-1">단백질</p>
-                            </div>
-                            <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-                                <p className="text-4xl sm:text-3xl font-bold text-orange-600">{dailyNutrition.fat}g</p>
-                                <p className="text-gray-600 text-sm font-medium mt-1">지방</p>
-                            </div>
-                            <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
-                                <p className="text-4xl sm:text-3xl font-bold text-purple-600">{dailyNutrition.carbs}g</p>
-                                <p className="text-gray-600 text-sm font-medium mt-1">탄수화물</p>
-                            </div>
+                {meals.length === 0 && !generating ? (
+                    <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border-2 border-dashed border-gray-200 text-center">
+                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                            <RefreshCw className="text-blue-500" size={32} />
                         </div>
-                    </Card>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">아직 식단이 없어요</h3>
+                        <p className="text-gray-500 mb-6">AI에게 맞춤형 식단을 추천받아보세요.</p>
+                        <Button
+                            onClick={() => generateMeals(profile.id, recoveryPhase, profile.surgery_type)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl"
+                        >
+                            식단 생성하기
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Daily Nutrition Summary */}
+                        <Card className="bg-blue-50 border-blue-100 p-4 sm:p-6">
+                            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-blue-900">일일 영양 목표 달성도</h2>
+                            {/* 반응형 그리드: 모바일 1열, 태블릿 2열, 데스크톱 4열 */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                                    <p className="text-4xl sm:text-3xl font-bold text-blue-600">{dailyNutrition.calories}</p>
+                                    <p className="text-gray-600 text-sm font-medium mt-1">총 칼로리 (kcal)</p>
+                                </div>
+                                <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                                    <p className="text-4xl sm:text-3xl font-bold text-green-600">{dailyNutrition.protein}g</p>
+                                    <p className="text-gray-600 text-sm font-medium mt-1">단백질</p>
+                                </div>
+                                <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                                    <p className="text-4xl sm:text-3xl font-bold text-orange-600">{dailyNutrition.fat}g</p>
+                                    <p className="text-gray-600 text-sm font-medium mt-1">지방</p>
+                                </div>
+                                <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+                                    <p className="text-4xl sm:text-3xl font-bold text-purple-600">{dailyNutrition.carbs}g</p>
+                                    <p className="text-gray-600 text-sm font-medium mt-1">탄수화물</p>
+                                </div>
+                            </div>
+                        </Card>
 
-                    {/* Meals */}
-                    <MealCard title="아침" meal={breakfast} />
-                    <MealCard title="점심" meal={lunch} />
-                    <MealCard title="저녁" meal={dinner} />
-                    {snacks.map((snack, i) => (
-                        <MealCard key={i} title={`간식 ${i + 1}`} meal={snack} />
-                    ))}
-                </div>
+                        {/* Meals */}
+                        <MealCard title="아침" meal={breakfast} />
+                        <MealCard title="점심" meal={lunch} />
+                        <MealCard title="저녁" meal={dinner} />
+                        {snacks.map((snack, i) => (
+                            <MealCard key={i} title={`간식 ${i + 1}`} meal={snack} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     )
-
 }
 
 export default function MealPlanPage() {
