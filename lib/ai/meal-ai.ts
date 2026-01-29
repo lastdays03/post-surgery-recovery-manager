@@ -1,6 +1,7 @@
 import type { AdvancedMetrics } from '@/lib/actions/profile-actions'
 import { LLMService } from './llm-service'
 import type { Meal } from '@/lib/types/meal.types'
+import { format } from 'date-fns'
 
 /**
  * 식단 생성 요청 인터페이스
@@ -12,6 +13,10 @@ export interface MealGenerationRequest {
         favoriteFood?: string[]
         avoidIngredients?: string[]
         availableIngredients?: string[]
+    }
+    dateRange?: {
+        from: Date | string
+        to: Date | string
     }
     dietaryRestrictions?: string[]
     surgeryType?: string
@@ -170,6 +175,7 @@ ${getGuidelinesPrompt(request.recoveryPhase, guidelines)}
 6. **Phase Compliance**: If the phase is liquid, do not include items requiring chewing or containing pulp/fibrous solids; specify straining/blending when needed.
 7. **Nutrition Fields**: Provide estimated nutrition per item (calories, protein, carbs, fat). Keep estimates plausible.
 8. **Notes**: Include brief tolerance/monitoring notes aligned with ESPEN triggers (섭취율, 체중, 위장관 증상) and any key cautions when relevant.
+9. **CRITICAL: Detailed Fields**: You MUST provide values for both \`ingredients\` (array of strings) and \`instructions\` (array of strings) for EVERY meal. DO NOT use keys like 'foods' to list items; use these standard keys.
 </instructions>
 
 ${getLanguageRulesPrompt()}
@@ -200,13 +206,13 @@ Example:
   ]
 }
 
-Required keys per element:
+Required keys per element (DO NOT MISS ANY):
 - id (string)
 - name (string)
 - mealTime (one of: breakfast, lunch, dinner, snack1, snack2)
 - phase (string, MUST be "${request.recoveryPhase}")
-- ingredients (array of strings)
-- instructions (array of strings)
+- ingredients (array of strings, e.g., ["재료1", "재료2"])
+- instructions (array of strings, e.g., ["단계1", "단계2"])
 - prepTime (number; minutes)
 - portionSize (string)
 - nutrition (object: calories, protein, carbs, fat as numbers)
@@ -238,6 +244,7 @@ ${request.preferences?.favoriteFood?.length ? `- 선호 음식: ${request.prefer
 </patient_info>
 
 Generate 5 meals (Breakfast, Lunch, Dinner, 2 Snacks) and wrap them in a JSON Object with a single key "meals".
+Ensure "ingredients" and "instructions" fields are arrays of strings.
 Use English Keys for JSON structure.
 `
 
@@ -263,7 +270,7 @@ Use English Keys for JSON structure.
         }
 
         // JSON 파싱 시도
-        let meals: Meal[]
+        let meals: Meal[] = []
         try {
             const jsonContent = cleanJsonOutput(response.content)
 
@@ -271,11 +278,9 @@ Use English Keys for JSON structure.
             try {
                 parsed = JSON.parse(jsonContent)
             } catch (initialError) {
-                // If simple parse fails, try to wrap if it looks like content
                 if (jsonContent.trim().startsWith('{')) {
                     throw initialError;
                 }
-                // Fallback attempt (unlikely necessary with json_object mode but safe to keep)
                 try {
                     const wrappedContent = `{ "meals": ${jsonContent} }`;
                     parsed = JSON.parse(wrappedContent);
@@ -289,10 +294,8 @@ Use English Keys for JSON structure.
             if (parsed.meals && Array.isArray(parsed.meals)) {
                 arrayData = parsed.meals;
             } else if (Array.isArray(parsed)) {
-                // Fallback if LLM returning array directly despite instructions
                 arrayData = parsed;
             } else {
-                // Try to find any array property
                 const potentialKeys = ['data', 'recommendations', 'plans', 'schedule'];
                 for (const key of potentialKeys) {
                     if (Array.isArray(parsed[key])) {
@@ -300,13 +303,8 @@ Use English Keys for JSON structure.
                         break;
                     }
                 }
-                if (arrayData.length === 0) {
-                    // Last resort: invalid structure
-                    console.warn('⚠️ Could not find "meals" array in response. Structure:', parsed);
-                }
             }
 
-            // 유효한 식단 객체만 필터링 (메타데이터 제거)
             meals = arrayData.filter((item: any) =>
                 item &&
                 typeof item === 'object' &&
@@ -315,91 +313,16 @@ Use English Keys for JSON structure.
             ) as Meal[]
         } catch (parseError) {
             console.error('❌ JSON 파싱 실패:', parseError)
-            console.error('응답 내용:', response.content)
             throw new Error(`JSON 파싱 실패: ${parseError instanceof Error ? parseError.message : '알 수 없는 오류'}`)
         }
 
-        // 기본 검증
-        if (!Array.isArray(meals) || meals.length === 0) {
-            console.error('❌ 생성된 데이터가 배열이 아니거나 비어있음:', meals)
-            throw new Error('생성된 식단이 올바른 형식이 아닙니다.')
+        if (meals.length === 0) {
+            throw new Error('생성된 식단이 올바른 형식이 아니거나 비어있습니다.')
         }
 
-        // 각 식사에 고유 ID 및 필수 필드 부여
-        meals.forEach((meal, index) => {
-            if (!meal.id) {
-                meal.id = `${request.userId}-${Date.now()}-${index}`
-            }
-
-            // mealTime 한글 -> 영어 매핑 정규화
-            if (meal.mealTime) {
-                const timeMap: Record<string, string> = {
-                    '아침': 'breakfast',
-                    '점심': 'lunch',
-                    '저녁': 'dinner',
-                    '간식': 'snack',
-                    '간식1': 'snack',
-                    '간식2': 'snack',
-                    'snack1': 'snack',
-                    'snack2': 'snack'
-                };
-                // 이미 영어인 경우는 그대로 두고, 한글인 경우 매핑
-                if (timeMap[meal.mealTime]) {
-                    meal.mealTime = timeMap[meal.mealTime] as any;
-                }
-            }
-
-            // name 필드 안정화 (LLM이 다른 키를 사용할 경우 대비)
-            if (!meal.name) {
-                const nameCandidates = ['menu', 'title', 'dish', 'food', 'menuName', '식사명', '메뉴', '이름'];
-                for (const key of nameCandidates) {
-                    if ((meal as any)[key]) {
-                        meal.name = (meal as any)[key];
-                        break;
-                    }
-                }
-                // 여전히 없으면 기본값
-                if (!meal.name) {
-                    meal.name = 'AI 추천 식단';
-                }
-            }
-
-            // 필수 필드 기본값 설정
-            if (!meal.nutrition) {
-                meal.nutrition = { calories: 0, protein: 0, carbs: 0, fat: 0 }
-                console.warn(`⚠️ ${meal.name}: nutrition 필드 누락, 기본값 설정`)
-            }
-            if (!meal.ingredients) {
-                meal.ingredients = []
-                console.warn(`⚠️ ${meal.name}: ingredients 필드 누락, 빈 배열 설정`)
-            }
-            if (!meal.instructions) {
-                meal.instructions = []
-                console.warn(`⚠️ ${meal.name}: instructions 필드 누락, 빈 배열 설정`)
-            }
-            if (!meal.prepTime) {
-                meal.prepTime = 15
-            }
-            if (!meal.portionSize) {
-                meal.portionSize = '1인분'
-            }
-        })
-
-        // 금기 재료 검증
-        const forbiddenIngredients = guidelines.forbidden
-        meals.forEach(meal => {
-            const hasForbidden = meal.ingredients?.some(ingredient =>
-                forbiddenIngredients.some(forbidden =>
-                    ingredient.toLowerCase().includes(forbidden.toLowerCase())
-                )
-            )
-            if (hasForbidden) {
-                console.warn(`⚠️ 경고: ${meal.name}에 금기 재료가 포함되어 있을 수 있습니다.`)
-            }
-        })
-
-        console.log(`✅ 식단 생성 성공: ${meals.length}개 식사`)
-        return meals
+        const normalizedMeals = normalizeMeals(meals, request, guidelines)
+        console.log(`✅ 식단 생성 성공: ${normalizedMeals.length}개 식사`)
+        return normalizedMeals
     } catch (error) {
         console.error('❌ 식단 생성 오류:', error)
 
@@ -408,6 +331,97 @@ Use English Keys for JSON structure.
             throw new Error(`식단 생성 실패: ${error.message}`)
         }
         throw new Error('식단 생성에 실패했습니다. 다시 시도해주세요.')
+    }
+}
+
+/**
+ * 여러 날짜의 식단 생성
+ */
+export async function generateMultiDayMeals(request: MealGenerationRequest): Promise<Record<string, Meal[]>> {
+    const llm = LLMService.getClient()
+    const guidelines = RECOVERY_PHASE_GUIDELINES[request.recoveryPhase]
+
+    if (!request.dateRange) {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const meals = await generateDailyMeals(request)
+        return { [today]: meals }
+    }
+
+    const startDate = typeof request.dateRange.from === 'string' && request.dateRange.from.match(/^\d{4}-\d{2}-\d{2}$/)
+        ? request.dateRange.from
+        : format(new Date(request.dateRange.from!), 'yyyy-MM-dd')
+
+    const endDate = typeof request.dateRange.to === 'string' && request.dateRange.to.match(/^\d{4}-\d{2}-\d{2}$/)
+        ? request.dateRange.to
+        : format(new Date(request.dateRange.to!), 'yyyy-MM-dd')
+
+    const systemPrompt = `
+<role>
+당신은 수술 후 회복 환자를 위한 전문 임상영양사 AI입니다.
+회복 단계, 위장관 기능, 영양 위험도, 개인 선호도를 통합해 요청된 기간 동안의 "일일 식단 세트"를 생성합니다.
+한 세트는 아침, 점심, 저녁, 간식 2개로 구성됩니다.
+</role>
+
+${RECOVERY_PHASE_GUIDELINES[request.recoveryPhase].description} 가이드를 따르세요.
+
+<instructions>
+1. **Output Structure**: Return a JSON object where each key is a date (YYYY-MM-DD) and each value is an array of 5 Meal objects.
+2. **Inclusive Range**: 생성해야 하는 날짜 범위를 반드시 준수하세요. 시작일(${startDate})부터 종료일(${endDate})까지 **모든 날짜(종료일 포함)**의 데이터를 생성해야 합니다.
+3. **Phase Compliance**: Ensure all meals match the "${request.recoveryPhase}" phase.
+4. **Variety**: Provide different meals for each day to avoid repetition.
+5. **Language**: JSON keys in English, property values in Korean.
+6. **Data Integrity**: You MUST provide values for both \`ingredients\` (array of strings) and \`instructions\` (array of strings) for EVERY meal.
+</instructions>
+
+<output_format>
+{
+  "${startDate}": [
+    {
+      "id": "...",
+      "name": "...",
+      "mealTime": "breakfast",
+      "phase": "${request.recoveryPhase}",
+      "ingredients": ["...", "..."],
+      "instructions": ["...", "..."],
+      "nutrition": { ... },
+      ...
+    }
+  ],
+  "${endDate}": [ ... ]
+}
+</output_format>
+`
+
+    const userPrompt = `
+Generate meal plans for the following dates: from ${startDate} to ${endDate} (inclusive).
+Please ensure that the entry for ${endDate} is included in your JSON response.
+Patient info: ${request.surgeryType || '위 절제술'}, Phase: ${request.recoveryPhase}.
+`
+
+    try {
+        const response = await llm.chat({
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+            jsonMode: true,
+            responseFormat: { type: 'json_object' }
+        })
+
+        const data = JSON.parse(response.content)
+        const normalizedData: Record<string, Meal[]> = {}
+
+        for (const [date, dailyMeals] of Object.entries(data)) {
+            if (Array.isArray(dailyMeals)) {
+                normalizedData[date] = normalizeMeals(dailyMeals as Meal[], request, guidelines)
+            }
+        }
+
+        return normalizedData
+    } catch (error) {
+        console.error('Multi-day meal generation error:', error)
+        throw error
     }
 }
 
@@ -445,6 +459,7 @@ ${getGuidelinesPrompt(recoveryPhase, guidelines)}
    - Update the "meals" array significantly if needed.
    - Ensure specific diet preferences (e.g. "no fish") are respected.
    - Keep the nutritional balance suitable for their recovery phase.
+   - Ensure \`ingredients\` and \`instructions\` arrays are properly populated.
 3. If the user just asks a question:
    - You may keep "updatedMeals" same as input or empty if no change needed (but better to return current).
    - Provide a helpful "reply".
@@ -509,7 +524,7 @@ IMPORTANT: Return ONLY JSON. No markdown fencing.
         }
 
         return {
-            updatedMeals: Array.isArray(result.updatedMeals) ? result.updatedMeals : request.currentMeals,
+            updatedMeals: Array.isArray(result.updatedMeals) ? normalizeMeals(result.updatedMeals, { userId: request.userId, recoveryPhase: recoveryPhase } as any, guidelines) : request.currentMeals,
             reply: result.reply || '식단을 수정했습니다.'
         }
     } catch (error) {
@@ -519,4 +534,143 @@ IMPORTANT: Return ONLY JSON. No markdown fencing.
         }
         throw new Error('식단 수정에 실패했습니다. 다시 시도해주세요.')
     }
+}
+
+/**
+ * 식단 데이터 정규화 및 필드 보정
+ */
+function normalizeMeals(meals: Meal[], request: MealGenerationRequest, guidelines: any): Meal[] {
+    const timeMap: Record<string, string> = {
+        '아침': 'breakfast',
+        '점심': 'lunch',
+        '저녁': 'dinner',
+        '간식': 'snack',
+        '간식1': 'snack',
+        '간식2': 'snack',
+        'snack1': 'snack',
+        'snack2': 'snack'
+    };
+
+    // 문자열에서 숫자만 추출하는 헬퍼 함수
+    const extractNumber = (val: any): number => {
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') {
+            const match = val.match(/\d+/);
+            return match ? parseInt(match[0], 10) : 0;
+        }
+        return 0;
+    };
+
+    meals.forEach((meal, index) => {
+        // meal이 객체가 아니면 객체로 변환 (AI가 문자열 배열을 반환하는 경우 대응)
+        if (typeof meal !== 'object' || meal === null) {
+            const originalMeal = meal;
+            (meals[index] as any) = {
+                id: `generated-${Date.now()}-${index}`,
+                name: typeof originalMeal === 'string' ? originalMeal : 'AI 추천 식단',
+                mealTime: 'snack',
+                ingredients: [],
+                instructions: [],
+                nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                prepTime: 15,
+                portionSize: '1인분'
+            };
+            meal = meals[index];
+        }
+
+        // id가 없으면 생성
+        if (!meal.id) {
+            meal.id = `generated-${Date.now()}-${index}`;
+        }
+        // mealTime 정규화 (한글 -> 영어)
+        if (meal.mealTime) {
+            if (timeMap[meal.mealTime]) {
+                meal.mealTime = timeMap[meal.mealTime] as any;
+            }
+        }
+
+        // name 필드 안정화
+        if (!meal.name) {
+            const nameCandidates = ['menu', 'title', 'dish', 'food', 'menuName', '식사명', '메뉴', '이름'];
+            for (const key of nameCandidates) {
+                if ((meal as any)[key]) {
+                    meal.name = (meal as any)[key];
+                    break;
+                }
+            }
+            if (!meal.name) {
+                meal.name = 'AI 추천 식단';
+            }
+        }
+
+        // 영양성분 필드 정규화
+        const rawNutrition = (meal.nutrition || (meal as any).nutritionalInfo || {}) as any;
+        const nutrition: any = {
+            calories: extractNumber(rawNutrition.calories || rawNutrition.kcal || (meal as any).calories || 0),
+            protein: extractNumber(rawNutrition.protein || rawNutrition.protein_g || (meal as any).protein || 0),
+            carbs: extractNumber(rawNutrition.carbs || rawNutrition.carbs_g || (meal as any).carbs || 0),
+            fat: extractNumber(rawNutrition.fat || rawNutrition.fat_g || (meal as any).fat || 0)
+        };
+        meal.nutrition = nutrition;
+
+        // 필수 필드 및 foods 필드 보정
+        const rawIngredients = meal.ingredients || (meal as any).ingredients_list || (meal as any).foods || [];
+        meal.ingredients = Array.isArray(rawIngredients) ? rawIngredients : [];
+
+        const rawInstructions = meal.instructions || (meal as any).cookingMethod || (meal as any).recipe || [];
+        meal.instructions = Array.isArray(rawInstructions) ? rawInstructions : [];
+
+        // 만약 ingredients가 비어있고 foods가 있다면(이미 위에서 체크함) 보정
+        // 만약 instructions가 비어있고 ingredients에 조리법 같은 내용이 있다면 (일부 모델 오작동 대응)
+        if (meal.instructions.length === 0 && meal.ingredients.length > 0) {
+            // ingredients의 각 항목이 20자 이상이면 조리법일 가능성이 큼
+            const lookLikeInstructions = meal.ingredients.every(item => item.length > 20);
+            if (lookLikeInstructions) {
+                meal.instructions = [...meal.ingredients];
+                meal.ingredients = []; // 대체할 ingredients가 없으면 비워둠 (AI가 다시 생성하도록 유도하거나 최소한 UI 에러 방지)
+            }
+        }
+
+        // prepTime 보정
+        const rawPrepTime = meal.prepTime || (meal as any).cookingTime || (meal as any).time || 15;
+        meal.prepTime = extractNumber(rawPrepTime);
+
+        if (!meal.portionSize) {
+            meal.portionSize = (meal as any).portionGuide || '1인분'
+        }
+        if (!meal.phase) {
+            meal.phase = request.recoveryPhase
+        }
+
+        // notes 필드 보정 (기존에 누락됨)
+        const rawNote = meal.notes || (meal as any).note || (meal as any).tip || (meal as any).caution || (meal as any).cautions || (meal as any).advice || (meal as any).special_instruction;
+        if (rawNote) {
+            meal.notes = Array.isArray(rawNote) ? rawNote.join(' ') : String(rawNote);
+        }
+
+        // 기타 필드 보존
+        if (!meal.suitableFor) meal.suitableFor = (meal as any).suitable_for || [];
+        if (!meal.tags) meal.tags = (meal as any).categories || [];
+    })
+
+    // 금기 재료 검증
+    if (guidelines && guidelines.forbidden) {
+        const forbiddenIngredients = guidelines.forbidden
+        meals.forEach(meal => {
+            // meal.ingredients가 배열인지 최후의 확인 (TypeError 방지)
+            if (Array.isArray(meal.ingredients)) {
+                const hasForbidden = meal.ingredients.some(ingredient =>
+                    typeof ingredient === 'string' &&
+                    forbiddenIngredients.some((forbidden: string) =>
+                        ingredient.toLowerCase().includes(forbidden.toLowerCase())
+                    )
+                )
+                if (hasForbidden) {
+                    console.warn(`⚠️ 경고: ${meal.name}에 금기 재료가 포함되어 있을 수 있습니다.`)
+                }
+            }
+        })
+    }
+
+    return meals
 }

@@ -12,7 +12,8 @@ import { MealGenerationModal } from './meal-generation-modal'
 import { MealCard } from '@/components/meal-plan/meal-card'
 import { MealDetailModal } from '@/components/meal-plan/meal-detail-modal'
 import type { Meal } from '@/lib/types/meal.types'
-import { getTodayMealPlan, fetchTodayMealPlan, saveMealPlan, type MealPlan } from '@/lib/services/meal-service'
+import { getTodayMealPlan, fetchTodayMealPlan, saveMealPlan, type MealPlan, getTodayDate } from '@/lib/services/meal-service'
+import { supabase } from '@/lib/supabase-client'
 import { DateRange } from 'react-day-picker'
 import Link from 'next/link'
 
@@ -58,15 +59,24 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
 
     const handleGenerate = async (range: DateRange) => {
         try {
+            // 사용자 프로필 정보를 가져오기 위해 (recovery_phase 필요)
+            const { data: profile } = await (supabase as any)
+                .from('user_profiles')
+                .select('recovery_phase, preferences, surgery_type')
+                .eq('id', userId)
+                .single()
+
             const response = await fetch('/api/ai/meal-generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId,
-                    recoveryPhase: 'soft', // Default for now
+                    recoveryPhase: profile?.recovery_phase || 'soft',
+                    preferences: profile?.preferences,
+                    surgeryType: profile?.surgery_type,
                     dateRange: {
-                        from: range.from,
-                        to: range.to
+                        from: range.from ? format(range.from, 'yyyy-MM-dd') : undefined,
+                        to: range.to ? format(range.to, 'yyyy-MM-dd') : undefined
                     }
                 })
             })
@@ -77,10 +87,19 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
                 setJustGenerated(true)
                 setIsModalOpen(false)
 
-                // Navigate to monthly view after short delay
-                setTimeout(() => {
-                    // router.push('/meal-plan/monthly') // Removed automatic navigation to show the button per new design
-                }, 1500)
+                // 로컬 스토리지 캐시 업데이트 (오늘 식단)
+                const today = getTodayDate()
+                if (data.allPlans && data.allPlans[today]) {
+                    saveMealPlan({
+                        user_id: userId,
+                        date: today,
+                        recovery_phase: profile?.recovery_phase || 'soft',
+                        meals: data.allPlans[today],
+                        preferences: profile?.preferences
+                    })
+                }
+
+                // 성공 메시지 토스트 등으로 알림 가능 (현재는 생략)
             }
         } catch (e) {
             console.error(e)

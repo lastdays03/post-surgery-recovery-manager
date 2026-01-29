@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateDailyMeals, type MealGenerationRequest } from '@/lib/ai/meal-ai'
+import { generateDailyMeals, generateMultiDayMeals, type MealGenerationRequest } from '@/lib/ai/meal-ai'
 import { saveMealPlan, getTodayDate } from '@/lib/services/meal-service'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -29,23 +29,40 @@ export async function POST(request: NextRequest) {
             body.advancedMetrics = profileData.advanced_metrics
         }
 
-        const meals = await generateDailyMeals(body)
+        let results: Record<string, any[]> = {}
+        const today = getTodayDate()
 
-        // 로컬 스토리지에 저장 (클라이언트에서 처리)
-        // 서버에서는 생성된 식단만 반환
+        if (body.dateRange) {
+            results = await generateMultiDayMeals(body)
+        } else {
+            const meals = await generateDailyMeals(body)
+            results[today] = meals
+        }
 
+        // DB에 저장
+        const savePromises = Object.entries(results).map(async ([date, meals]) => {
+            const { error } = await (supabaseAdmin as any)
+                .from('meal_plans')
+                .upsert({
+                    user_id: body.userId,
+                    date,
+                    recovery_phase: body.recoveryPhase,
+                    meals,
+                    preferences: body.preferences
+                }, { onConflict: 'user_id, date' })
+
+            if (error) {
+                console.error(`Error saving meal plan for ${date}:`, error)
+            }
+        })
+
+        await Promise.all(savePromises)
 
         return NextResponse.json({
             success: true,
-            meals,
-            mealPlan: {
-                user_id: body.userId,
-                date: getTodayDate(), // Fix: Ensure date is provided for validation
-                recovery_phase: body.recoveryPhase, // Fix: Ensure phase is provided
-                meals,
-                preferences: body.preferences
-            },
-            message: '식단이 성공적으로 생성되었습니다.'
+            meals: results[today] || Object.values(results)[0] || [], // 오늘 식단 우선, 없으면 첫 번째 날짜
+            allPlans: results,
+            message: '식단이 성공적으로 생성되고 저장되었습니다.'
         })
     } catch (error) {
         console.error('식단 생성 API 오류:', error)

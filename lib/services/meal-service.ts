@@ -1,5 +1,6 @@
 import type { Meal } from '@/lib/types/meal.types'
 import { supabase } from '@/lib/supabase-client'
+import { format } from 'date-fns'
 
 /**
  * 식단 계획 인터페이스
@@ -41,7 +42,7 @@ function saveToLocalStorage(plan: MealPlan) {
  * 오늘 날짜 (YYYY-MM-DD)
  */
 export function getTodayDate(): string {
-    return new Date().toISOString().split('T')[0]
+    return format(new Date(), 'yyyy-MM-dd')
 }
 
 /**

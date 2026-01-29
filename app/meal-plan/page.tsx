@@ -278,13 +278,13 @@ function MealPlanContent() {
 
                 <div className="mb-4">
                     <h4 className="font-semibold mb-2 text-gray-900">재료</h4>
-                    <p className="text-gray-700 text-sm font-medium">{meal.ingredients.join(', ')}</p>
+                    <p className="text-gray-700 text-sm font-medium">{(meal.ingredients || []).join(', ')}</p>
                 </div>
 
                 <div className="mb-4">
                     <h4 className="font-semibold mb-2 text-gray-900">조리 방법</h4>
                     <ol className="list-decimal list-inside space-y-1">
-                        {meal.instructions.map((step, i) => (
+                        {(meal.instructions || []).map((step, i) => (
                             <li key={i} className="text-gray-700 text-sm font-medium">
                                 {step}
                             </li>
@@ -338,7 +338,7 @@ function MealPlanContent() {
                             </Button>
                         )}
 
-                        {(dateParam === null || dateParam === getTodayDate()) && (
+                        {(dateParam === null || dateParam >= getTodayDate()) && (
                             <>
                                 <Button
                                     onClick={() => setShowChat(!showChat)}

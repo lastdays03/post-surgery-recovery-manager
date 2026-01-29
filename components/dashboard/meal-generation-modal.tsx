@@ -20,7 +20,25 @@ export function MealGenerationModal({ isOpen, onClose, userId, onGenerate }: Mea
     const [dateRange, setDateRange] = useState<DateRange | undefined>()
     const [isLoading, setIsLoading] = useState(false)
 
+    // Reset date range when modal opens
+    if (!isOpen && dateRange) {
+        setDateRange(undefined)
+    }
+
     if (!isOpen) return null
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const handleSelect = (_: DateRange | undefined, selectedDay: Date) => {
+        // Prevent selecting past dates (should be handled by disabled prop too)
+        if (selectedDay < today) return
+
+        setDateRange({
+            from: today,
+            to: selectedDay
+        })
+    }
 
     const handleConfirm = async () => {
         if (!dateRange?.from || !dateRange?.to) return
@@ -39,8 +57,7 @@ export function MealGenerationModal({ isOpen, onClose, userId, onGenerate }: Mea
 
     // Calculate nights/days just for display info
     const getDurationText = () => {
-        if (!dateRange?.from) return ''
-        if (!dateRange.to) return `${format(dateRange.from, 'M월 d일', { locale: ko })} (1일)`
+        if (!dateRange?.from || !dateRange?.to) return ''
 
         const diffTime = Math.abs(dateRange.to.getTime() - dateRange.from.getTime())
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
@@ -72,19 +89,20 @@ export function MealGenerationModal({ isOpen, onClose, userId, onGenerate }: Mea
                 <div className="p-6 flex flex-col items-center gap-6">
                     <div className="text-center space-y-1">
                         <p className="text-gray-600">
-                            언제부터 언제까지의 식단이 필요하신가요?
+                            언제까지의 식단을 생성할까요?
                         </p>
                         <p className="text-xs text-gray-500">
-                            오늘 이후의 날짜만 선택 가능합니다.
+                            오늘부터 선택한 날짜까지 식단이 생성됩니다.
                         </p>
                     </div>
 
                     <div className="p-4 bg-gray-50 rounded-2xl border">
                         <Calendar
                             mode="range"
+                            defaultMonth={today}
                             selected={dateRange}
-                            onSelect={setDateRange}
-                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            onSelect={handleSelect}
+                            disabled={(date) => date < today}
                             className="bg-white rounded-xl shadow-sm"
                             numberOfMonths={1}
                         />
@@ -93,7 +111,7 @@ export function MealGenerationModal({ isOpen, onClose, userId, onGenerate }: Mea
                     <div className="w-full bg-blue-50 p-4 rounded-xl flex justify-between items-center">
                         <span className="text-sm font-medium text-blue-700">선택된 기간</span>
                         <span className="text-sm font-bold text-blue-900">
-                            {dateRange?.from ? getDurationText() : '기간을 선택해주세요'}
+                            {dateRange?.to ? getDurationText() : '종료 날짜를 선택해주세요'}
                         </span>
                     </div>
 
