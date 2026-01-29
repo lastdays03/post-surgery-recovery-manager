@@ -9,15 +9,12 @@
 ### 핵심 컨셉
 "기력 없는 환자를 위한 가장 쉽고 전문적인 AI 식단 가이드"
 
-3. System _ 시스템 아키텍처 & 기술 설계
-1page
 ### 기술 스택 (Tech Stack)
 *   **Frontend**: `Next.js 16` , `React 19`, `TypeScript`
 *   **UI/UX**: `TailwindCSS 4`, `Shadcn UI`
 *   **Backend & DB**: `Supabase` (Auth, PostgreSQL, Storage)
 *   **AI Engine**: `LLM Integration` (OpenAI GPT-5.2, GPT-5-mini, Google Gemini 2.5 Flash, Groq Llama 3)
 
-2page
 ### 아키텍처 특징: "1인 스타트업을 위한 고효율 확장성(Cost-Effective Scalability)"
 *   **Serverless First (Vercel & Supabase)**: 1인 스타트업의 제약(시간·자본·인력)을 극복하기 위한 핵심 전략입니다.
     *   **운영 오버헤드 제로**: 인프라 관리를 플랫폼에 위임했습니다. 비즈니스 로직과 UX에만 집중할 수 있는 환경을 구축했습니다.
