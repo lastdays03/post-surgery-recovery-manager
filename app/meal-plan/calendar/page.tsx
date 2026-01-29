@@ -3,11 +3,12 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, FileDown, Loader2 } from 'lucide-react'
 import { generateCalendarGrid, CalendarDay } from '@/lib/utils/calendar-utils'
 import { cn } from '@/lib/utils'
 import { fetchMonthlyMealStats } from '@/lib/services/meal-service'
 import { getProfile } from '@/lib/local-storage'
+import { usePdfReport } from '@/hooks/use-pdf-report'
 
 export default function MealCalendarPage() {
     const router = useRouter()
@@ -20,6 +21,7 @@ export default function MealCalendarPage() {
     const [monthlyCache, setMonthlyCache] = useState<Set<string>>(new Set()) // 캐시된 월 추적 (YYYY-MM)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null) // 에러 상태
+    const { downloadCalendarPdf, isGenerating } = usePdfReport()
 
     // 사용자 ID 로드
     useEffect(() => {
@@ -111,16 +113,35 @@ export default function MealCalendarPage() {
         [currentDate.year, currentDate.month]
     )
 
+    const { year, month } = currentDate;
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <header className="bg-white border-b sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.back()}
+                            className="mr-2"
+                        >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <h1 className="text-xl font-bold text-gray-800">식단 캘린더</h1>
+                        <h1 className="text-xl font-bold text-gray-900">식단 달력</h1>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadCalendarPdf({ year, month, calendarGrid, mealStats })}
+                            disabled={isGenerating}
+                            className="text-gray-600 border-gray-300 hover:bg-gray-50"
+                        >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            {isGenerating ? "생성 중..." : "PDF 저장"}
+                        </Button>
                     </div>
                 </div>
             </header>
