@@ -6,7 +6,11 @@ export class OpenAIProvider implements LLMClient {
     private model: string
 
     constructor(apiKey: string, model: string = 'gpt-4o', baseURL?: string) {
-        this.client = new OpenAI({ apiKey, baseURL })
+        this.client = new OpenAI({
+            apiKey,
+            baseURL,
+            maxRetries: 3 // Cause #4 Solution: Auto-retry on network/timeout errors
+        })
         this.model = model
     }
 
@@ -65,6 +69,19 @@ export class OpenAIProvider implements LLMClient {
         const response = await this.client.chat.completions.create(baseParams)
 
         const choice = response.choices[0]
+
+        // Handle Safety Refusals (Cause #3)
+        if (choice.message.refusal) {
+            console.error(`🚨 [LLM Safety Refusal]: ${choice.message.refusal}`)
+            throw new Error(`AI Safety Refusal: ${choice.message.refusal}`)
+        }
+
+        // Monitor Finish Reason (Cause #2 check)
+        if (choice.finish_reason === 'length') {
+            console.warn('⚠️ [LLM Warning] Response truncated due to Max Tokens limit.')
+        } else if (choice.finish_reason === 'content_filter') {
+            console.warn('⚠️ [LLM Warning] Response affected by Content Filter.')
+        }
 
         return {
             content: choice.message.content || '',

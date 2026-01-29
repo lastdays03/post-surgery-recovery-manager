@@ -248,10 +248,10 @@ Use English Keys for JSON structure.
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.7,
-            maxTokens: 4096,
-            // jsonMode: true, // 일부 제공업체(DeepSeek 등)에서 호환성 문제가 발생할 수 있어 제거
-            // responseFormat: { type: 'json_object' }
-            reasoningEffort: request.reasoningEffort || 'high'
+            maxTokens: 12000,
+            jsonMode: true,
+            responseFormat: { type: 'json_object' },
+            reasoningEffort: request.reasoningEffort || 'medium'
         })
 
         // 🔍 디버깅: 실제 응답 로깅
@@ -477,9 +477,10 @@ IMPORTANT: Return ONLY JSON. No markdown fencing.
         const response = await llm.chat({
             messages: conversationMessages,
             temperature: 0.7,
-            maxTokens: 2048,
+            maxTokens: 8192,
             jsonMode: true,
-            responseFormat: { type: 'json_object' }
+            responseFormat: { type: 'json_object' },
+            reasoningEffort: 'medium'
         })
 
         // JSON 파싱 전처리 (Markdown 제거)

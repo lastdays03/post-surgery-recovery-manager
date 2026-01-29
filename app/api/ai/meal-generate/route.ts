@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateDailyMeals, type MealGenerationRequest } from '@/lib/ai/meal-ai'
-import { saveMealPlan } from '@/lib/services/meal-service'
+import { saveMealPlan, getTodayDate } from '@/lib/services/meal-service'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
@@ -33,15 +33,15 @@ export async function POST(request: NextRequest) {
 
         // 로컬 스토리지에 저장 (클라이언트에서 처리)
         // 서버에서는 생성된 식단만 반환
-        const today = new Date().toISOString().split('T')[0]
+
 
         return NextResponse.json({
             success: true,
             meals,
             mealPlan: {
                 user_id: body.userId,
-                date: today,
-                recovery_phase: body.recoveryPhase,
+                date: getTodayDate(), // Fix: Ensure date is provided for validation
+                recovery_phase: body.recoveryPhase, // Fix: Ensure phase is provided
                 meals,
                 preferences: body.preferences
             },

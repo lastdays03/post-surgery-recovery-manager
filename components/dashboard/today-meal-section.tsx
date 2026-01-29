@@ -12,7 +12,7 @@ import { MealGenerationModal } from './meal-generation-modal'
 import { MealCard } from '@/components/meal-plan/meal-card'
 import { MealDetailModal } from '@/components/meal-plan/meal-detail-modal'
 import type { Meal } from '@/lib/types/meal.types'
-import { getTodayMealPlan, type MealPlan } from '@/lib/services/meal-service'
+import { getTodayMealPlan, fetchTodayMealPlan, saveMealPlan, type MealPlan } from '@/lib/services/meal-service'
 import { DateRange } from 'react-day-picker'
 import Link from 'next/link'
 
@@ -32,12 +32,28 @@ export function TodayMealSection({ userId }: TodayMealSectionProps) {
         loadMeals()
     }, [])
 
-    const loadMeals = () => {
+    const loadMeals = async () => {
+        // 1. Try Local Cache
         const cachedPlan = getTodayMealPlan(userId)
         if (cachedPlan) {
             setMeals(cachedPlan.meals)
+            setIsLoading(false)
+            return
         }
-        setIsLoading(false)
+
+        // 2. Fallback to DB
+        try {
+            const dbPlan = await fetchTodayMealPlan(userId)
+            if (dbPlan) {
+                setMeals(dbPlan.meals)
+                // Cache it for next time
+                saveMealPlan(dbPlan)
+            }
+        } catch (error) {
+            console.error('Dashboard meal fetch error:', error)
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleGenerate = async (range: DateRange) => {
