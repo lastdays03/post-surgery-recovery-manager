@@ -115,7 +115,7 @@ export default function WeeklyReportPage() {
               />
               식사 섭취 :{" "}
               <span className="font-bold">
-                62%평균 62% (전주 대비{" "}
+                평균 62% (전주 대비{" "}
                 <span className="text-blue-600 font-semibold">+12%</span>)
               </span>
             </div>
@@ -175,14 +175,14 @@ export default function WeeklyReportPage() {
                   <Line
                     type="monotone"
                     dataKey="pain"
-                    name="통증"
+                    name="소화위장상태"
                     stroke="#ef4444"
                     strokeWidth={2}
                   />
                   <Line
                     type="monotone"
                     dataKey="energy"
-                    name="기력"
+                    name="음식첩취율"
                     stroke="#3b82f6"
                     strokeWidth={2}
                   />
