@@ -1,7 +1,17 @@
-# 월별 식단 캘린더 화면 설계
+# 월별 식단 캘린더 화면 설계 (수정됨)
 
 **작성일**: 2026-01-29
+**수정일**: 2026-01-29
+**버전**: 2.0
 **목적**: 식단 페이지에 월별 캘린더 뷰를 추가하여 사용자가 한 달 동안의 식단 내역을 한눈에 보고 특정 날짜의 식단으로 빠르게 이동할 수 있도록 함
+
+## ⚠️ 중요 변경사항
+
+**v1.0 → v2.0 주요 변경점**:
+- `fetchMonthlyMealPlans` 함수가 제거되어 **단계별 구현 전략**으로 변경
+- Phase 1: 버튼 + 기본 페이지 (정적 그리드)
+- Phase 2: 데이터 조회 함수 확장 (`fetchMealPlan` 파라미터 추가)
+- Phase 3: 인터랙션 추가 (월 이동, 클릭 이벤트)
 
 ---
 
@@ -52,27 +62,124 @@
 /app/meal-plan/page.tsx                   # 날짜 파라미터 지원 추가
 ```
 
-### 2.3 데이터 흐름
+### 2.3 단계별 구현 전략
 
+#### Phase 1: 버튼 + 기본 캘린더 페이지 ⭐ (현재 단계)
+
+**목표**: 식단 페이지에 "달력보기" 버튼을 추가하고, 클릭 시 정적 캘린더 그리드를 보여주는 페이지로 이동
+
+**구현 내용**:
+1. 식단 페이지에 "달력보기" 버튼 추가
+   - 기존 "AI와 대화하기", "식단 다시 추천받기" 버튼 옆에 배치
+   - `router.push('/meal-plan/calendar')` 로 이동
+2. 캘린더 페이지 생성 (`/app/meal-plan/calendar/page.tsx`)
+   - 기본 레이아웃 (헤더, 뒤로가기 버튼)
+   - 정적 캘린더 그리드 (현재 월 기준)
+3. 캘린더 유틸리티 함수 (`/lib/utils/calendar-utils.ts`)
+   - `generateCalendarGrid(year, month)` - 날짜 배열 생성
+   - 이전/다음 달 날짜 포함
+
+**포함되지 않는 것**:
+- DB 데이터 조회 및 표시
+- 날짜 클릭 이벤트
+- 월 이동 버튼 (UI만 표시, 기능 없음)
+
+**데이터 흐름**:
+```
+1. 식단 페이지에서 "달력보기" 클릭
+   ↓
+2. /meal-plan/calendar 페이지 이동
+   ↓
+3. 현재 년/월 기준으로 정적 그리드 생성
+   ↓
+4. 빈 캘린더 셀 렌더링 (날짜 숫자만 표시)
+```
+
+---
+
+#### Phase 2: 데이터 조회 함수 확장 및 표시
+
+**목표**: `fetchMealPlan`을 확장하여 특정 날짜의 식단을 조회하고 캘린더에 표시
+
+**구현 내용**:
+1. `meal-service.ts` 수정
+   ```typescript
+   // Before
+   export async function fetchMealPlan(userId: string): Promise<MealPlan | null>
+
+   // After
+   export async function fetchMealPlan(
+     userId: string,
+     date?: string  // 선택적 파라미터 (기본값: 오늘)
+   ): Promise<MealPlan | null>
+   ```
+2. 캘린더 페이지에서 월별 데이터 조회
+   - 해당 월의 모든 날짜에 대해 `fetchMealPlan` 호출
+   - `Promise.all`로 병렬 처리 (성능 최적화)
+3. 조회된 식단 데이터를 캘린더 셀에 표시
+   - 아침/점심/저녁/간식 배지 렌더링
+   - 식단 없는 날은 빈 셀 유지
+
+**데이터 흐름**:
 ```
 1. 페이지 로드
    ↓
 2. 프로필 확인 (없으면 /onboarding 리다이렉트)
    ↓
-3. fetchMonthlyMealPlans(userId, year, month) 호출
+3. 해당 월의 모든 날짜 생성 (1일~31일)
    ↓
-4. MealPlan[] 상태 저장
+4. 각 날짜에 대해 fetchMealPlan(userId, date) 호출
    ↓
-5. 캘린더 그리드 렌더링 (날짜별 식단 매핑)
+5. 조회된 데이터를 날짜별로 매핑
+   ↓
+6. 캘린더 그리드에 식단 정보 렌더링
+```
 
+**성능 최적화**:
+- 최대 31개의 병렬 요청 (한 달 최대 일수)
+- 결과 캐싱하여 동일 월 재방문 시 재사용
+- 로딩 상태 표시
+
+---
+
+#### Phase 3: 인터랙션 추가 (최종 단계)
+
+**목표**: 캘린더를 실용적으로 만들기 위한 사용자 인터랙션 구현
+
+**구현 내용**:
+1. 월 이동 버튼 기능 구현
+   - `< 2026년 1월 >` 좌우 화살표 클릭 시 월 변경
+   - 상태 업데이트 후 Phase 2 데이터 조회 로직 재실행
+2. 날짜 클릭 이벤트
+   - 식단이 있는 날짜 클릭 시 `/meal-plan?date=YYYY-MM-DD`로 이동
+   - 식단이 없는 날짜는 클릭 불가 (또는 토스트 메시지)
+3. 식단 페이지 수정
+   - URL 쿼리 파라미터 `date` 지원
+   - `fetchMealPlan(userId, dateParam)` 호출
+   - 날짜 표시 동적 변경
+4. 로딩 및 에러 처리
+   - 월 변경 시 로딩 오버레이
+   - DB 오류 시 에러 메시지
+
+**데이터 흐름**:
+```
 [월 변경 시]
 1. 좌/우 화살표 클릭
    ↓
 2. year/month 상태 업데이트
    ↓
-3. fetchMonthlyMealPlans 재호출
+3. Phase 2 데이터 조회 로직 실행
    ↓
 4. 로딩 상태 표시 후 캘린더 갱신
+
+[날짜 클릭 시]
+1. 식단이 있는 날짜 클릭
+   ↓
+2. /meal-plan?date=YYYY-MM-DD 이동
+   ↓
+3. 식단 페이지에서 해당 날짜 식단 로드
+   ↓
+4. 식단 상세 정보 표시
 ```
 
 ---
@@ -469,14 +576,55 @@ return (
 
 ---
 
-## 7. 성능 최적화
+## 7. 성능 최적화 (Phase 2 이후 적용)
 
-### 7.1 데이터 캐싱
+### 7.1 데이터 조회 최적화
 
-- `fetchMonthlyMealPlans` 결과를 상태로 저장하여 재사용
-- 동일 월 재방문 시 캐시된 데이터 우선 사용 (선택 사항)
+**Phase 2에서 고려사항**:
+- 월별로 최대 31번의 `fetchMealPlan` 호출 필요
+- `Promise.all`로 병렬 처리하여 속도 개선
+- 실패한 요청은 무시하고 계속 진행
 
-### 7.2 렌더링 최적화
+```typescript
+// 월별 데이터 조회 예시
+const loadMonthlyMeals = async (year: number, month: number) => {
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const promises = []
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    promises.push(
+      fetchMealPlan(userId, date).catch(() => null) // 실패 시 null 반환
+    )
+  }
+
+  const results = await Promise.all(promises)
+  // results: (MealPlan | null)[]
+  return results.filter(plan => plan !== null)
+}
+```
+
+### 7.2 캐싱 전략
+
+- 조회한 월별 데이터를 메모리에 캐싱
+- 동일 월 재방문 시 API 호출 생략
+- 옵션: 로컬 스토리지에 캐싱 (TTL 30분)
+
+```typescript
+const [monthlyCache, setMonthlyCache] = useState<Record<string, MealPlan[]>>({})
+
+// 캐시 키: "2026-01"
+const cacheKey = `${year}-${String(month).padStart(2, '0')}`
+if (monthlyCache[cacheKey]) {
+  setMealPlans(monthlyCache[cacheKey])
+} else {
+  const plans = await loadMonthlyMeals(year, month)
+  setMonthlyCache(prev => ({ ...prev, [cacheKey]: plans }))
+  setMealPlans(plans)
+}
+```
+
+### 7.3 렌더링 최적화
 
 ```typescript
 // 캘린더 셀 컴포넌트 메모이제이션
@@ -485,29 +633,49 @@ const CalendarCell = React.memo(({ day, mealPlan, onClick }: CalendarCellProps) 
 })
 ```
 
-### 7.3 이미지 최적화
+### 7.4 이미지 최적화
 
 - 식단 이미지가 추가될 경우 Next.js Image 컴포넌트 사용
 - lazy loading 적용
 
 ---
 
-## 8. 테스트 계획
+## 8. 테스트 계획 (Phase별 분리)
 
-### 8.1 단위 테스트
+### 8.1 Phase 1 테스트
 
-- `calendar-utils.ts`의 날짜 계산 함수 테스트
+**단위 테스트**:
+- `calendar-utils.ts`의 `generateCalendarGrid` 함수
   - 월의 첫 날이 일요일인 경우
   - 월의 첫 날이 토요일인 경우
-  - 윤년 2월 처리
+  - 윤년 2월 처리 (2024년 2월 = 29일)
   - 연도 경계 (12월 → 1월, 1월 → 12월)
 
-### 8.2 통합 테스트
+**수동 테스트**:
+- 식단 페이지에서 "달력보기" 버튼 클릭 → 캘린더 페이지 이동 확인
+- 캘린더 그리드가 정상적으로 렌더링되는지 확인
+- 뒤로가기 버튼으로 식단 페이지 복귀 확인
 
-- 캘린더 페이지 렌더링 테스트
-- 월 이동 기능 테스트
-- 날짜 클릭 → 식단 페이지 이동 테스트
-- 에러 상태 처리 테스트
+### 8.2 Phase 2 테스트
+
+**단위 테스트**:
+- `fetchMealPlan(userId, date?)` 함수
+  - date 파라미터가 없을 때 오늘 날짜 조회
+  - date 파라미터가 있을 때 해당 날짜 조회
+  - 존재하지 않는 날짜 조회 시 null 반환
+
+**통합 테스트**:
+- 월별 데이터 조회 로직 (Promise.all)
+- 캘린더에 식단 데이터 표시 확인
+- 로딩 상태 표시 확인
+
+### 8.3 Phase 3 테스트
+
+**통합 테스트**:
+- 월 이동 버튼 클릭 → 데이터 재조회 확인
+- 날짜 클릭 → 식단 페이지 이동 확인
+- 식단 페이지에서 URL 파라미터로 특정 날짜 식단 조회
+- 에러 상태 처리 (네트워크 오류, 프로필 없음 등)
 
 ### 8.3 E2E 테스트
 
@@ -536,26 +704,56 @@ const CalendarCell = React.memo(({ day, mealPlan, onClick }: CalendarCellProps) 
 
 ---
 
-## 10. 구현 우선순위
+## 10. 구현 우선순위 (수정됨)
 
-### Phase 1: 핵심 기능 (필수)
-1. ✅ 캘린더 그리드 생성 로직
-2. ✅ 월별 식단 데이터 조회
-3. ✅ 날짜 클릭 → 식단 페이지 이동
-4. ✅ 월 이동 버튼
-5. ✅ 기본 반응형 디자인
+### Phase 1: 버튼 + 기본 페이지 ⭐ (현재)
+1. [ ] 식단 페이지에 "달력보기" 버튼 추가
+2. [ ] 캘린더 페이지 생성 (`/app/meal-plan/calendar/page.tsx`)
+3. [ ] 캘린더 유틸리티 함수 (`/lib/utils/calendar-utils.ts`)
+4. [ ] 정적 캘린더 그리드 렌더링 (날짜만 표시)
+5. [ ] 기본 레이아웃 및 헤더 (뒤로가기 버튼)
 
-### Phase 2: UI/UX 개선 (권장)
-1. 로딩 상태 및 에러 처리
-2. 오늘 날짜 강조
-3. 식사별 색상 배지
-4. 모바일 최적화
+**완료 조건**:
+- "달력보기" 버튼 클릭 시 캘린더 페이지로 이동
+- 현재 월 기준으로 빈 캘린더 그리드 표시
+- 뒤로가기 버튼으로 식단 페이지 복귀
 
-### Phase 3: 추가 기능 (선택)
-1. 식단 없는 날짜 생성 기능
-2. 애니메이션 효과
-3. 영양소 통계
-4. 스와이프 제스처
+---
+
+### Phase 2: 데이터 연동
+1. [ ] `fetchMealPlan(userId, date?)` 파라미터 추가
+2. [ ] 월별 데이터 조회 로직 (`Promise.all` 병렬 처리)
+3. [ ] 캘린더 셀에 식단 정보 표시 (배지)
+4. [ ] 로딩 상태 및 에러 처리
+5. [ ] 오늘 날짜 강조
+
+**완료 조건**:
+- 해당 월의 모든 식단이 캘린더에 표시됨
+- 식단이 있는 날짜와 없는 날짜 구분 가능
+- 로딩 중에는 스켈레톤 UI 표시
+
+---
+
+### Phase 3: 인터랙션 구현
+1. [ ] 월 이동 버튼 기능 (좌/우 화살표)
+2. [ ] 날짜 클릭 이벤트 (식단 페이지로 이동)
+3. [ ] 식단 페이지 URL 파라미터 지원 (`?date=YYYY-MM-DD`)
+4. [ ] 식단 페이지 날짜 동적 표시
+5. [ ] 반응형 디자인 개선
+
+**완료 조건**:
+- 월을 자유롭게 이동하며 해당 월의 식단 확인 가능
+- 날짜 클릭 시 해당 날짜의 식단 상세 페이지로 이동
+- 식단 페이지에서 뒤로가기 시 캘린더로 복귀
+
+---
+
+### 향후 개선 (선택 사항)
+1. 식단 없는 날짜 클릭 시 AI 생성 기능
+2. 월 전환 애니메이션 효과
+3. 월간 영양소 통계 차트
+4. 모바일 스와이프 제스처
+5. 주간 뷰 추가
 
 ---
 
@@ -563,16 +761,56 @@ const CalendarCell = React.memo(({ day, mealPlan, onClick }: CalendarCellProps) 
 
 ### 11.1 알려진 제약사항
 
-- 현재 `fetchMonthlyMealPlans`는 한 달 전체 데이터를 한 번에 조회
-  - 향후 데이터가 많아질 경우 페이지네이션 필요
-- 로컬 스토리지 캐시는 TTL 10분으로 설정되어 있어 월간 데이터와 충돌 가능성
-  - 캘린더 페이지는 DB 조회만 사용하도록 권장
+**Phase 2에서 발생 가능한 문제**:
+- 월별로 최대 31번의 `fetchMealPlan` 호출
+  - 네트워크 요청이 많아져 속도 저하 가능
+  - `Promise.all`로 병렬 처리하지만 여전히 부담
+  - **해결 방안**: 향후 `fetchMonthlyMealPlans` 함수를 다시 추가하여 서버에서 한 번에 조회하도록 최적화
+
+**로컬 스토리지 충돌**:
+- 기존 캐시 TTL(10분)이 짧아 월간 데이터와 맞지 않음
+- **해결 방안**: 캘린더 페이지는 별도 캐시 키 사용 (`meal_calendar_cache_YYYY-MM`)
+
+**데이터 일관성**:
+- `fetchMealPlan`이 오늘 날짜만 조회하도록 하드코딩되어 있음
+- Phase 2에서 date 파라미터를 추가하면 기존 코드와 충돌 가능성
+- **해결 방안**: date 파라미터를 선택적(optional)으로 만들어 하위 호환성 유지
 
 ### 11.2 브라우저 호환성
 
 - `Date` API 사용 시 타임존 고려 필요
 - `toLocaleDateString` 포맷이 브라우저마다 다를 수 있음
 - 필요시 `date-fns` 라이브러리 사용 고려
+
+### 11.3 향후 최적화 방향
+
+**서버 사이드 개선**:
+1. `fetchMonthlyMealPlans` 함수 재추가
+2. Supabase에서 `.gte()`, `.lt()`로 범위 쿼리 한 번에 처리
+3. 클라이언트 요청 수를 31번 → 1번으로 감소
+
+**예상 구현** (Phase 2 완료 후):
+```typescript
+export async function fetchMonthlyMealPlans(
+  userId: string,
+  year: number,
+  month: number
+): Promise<MealPlan[]> {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const endMonth = month === 12 ? 1 : month + 1
+  const endYear = month === 12 ? year + 1 : year
+  const endDate = `${endYear}-${String(endMonth).padStart(2, '0')}-01`
+
+  const { data, error } = await supabase
+    .from('meal_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startDate)
+    .lt('date', endDate)
+
+  // ... 데이터 파싱 및 반환
+}
+```
 
 ---
 
@@ -648,5 +886,25 @@ const CalendarCell = ({ day, mealPlan, onClick }: CalendarCellProps) => {
 
 ---
 
-**문서 버전**: 1.0
-**다음 단계**: 구현 계획 수립 및 작업 분할
+## 요약
+
+**현재 상태**:
+- `fetchMealPlan`은 오늘 날짜만 조회
+- `fetchMonthlyMealPlans` 함수는 제거됨
+- 단계별 구현 전략 수립 완료
+
+**다음 작업**:
+1. **Phase 1 시작**: 식단 페이지에 "달력보기" 버튼 추가 및 기본 캘린더 페이지 생성
+2. Phase 1 완료 후 → Phase 2 (데이터 연동)
+3. Phase 2 완료 후 → Phase 3 (인터랙션)
+
+**주요 결정 사항**:
+- ✅ 별도 페이지 라우팅 (`/meal-plan/calendar`)
+- ✅ 단계별 구현 (Phase 1 → 2 → 3)
+- ✅ `fetchMealPlan` 확장 방식 (date 파라미터 추가)
+- ✅ 간소화된 셀 표시 (식사당 한 줄)
+
+---
+
+**문서 버전**: 2.0 (수정됨)
+**다음 단계**: Phase 1 구현 시작
