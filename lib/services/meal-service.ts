@@ -308,13 +308,15 @@ export function isMealPlanValid(
     const targetDate = expectedDate || getTodayDate()
     if (plan.date !== targetDate) return false
 
-    if (plan.recovery_phase !== currentPhase) return false
+    // recovery_phase 일치 제한 해제
+    // if (plan.recovery_phase !== currentPhase) return false
 
     // 식단 데이터가 비어있으면 무효
     if (!plan.meals || plan.meals.length === 0) return false
 
     return true
 }
+
 
 /**
  * [DB] 월간 식단 통계 조회 (캘린더용)
